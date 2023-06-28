@@ -1,8 +1,8 @@
-#ifndef	_MY_WAITUTILS_H
-#define	_MY_WAITUTILS_H	1
+#ifndef _MY_WAITUTILS_H
+#define _MY_WAITUTILS_H 1
 
-#include <sys/wait.h>
 #include <bits/types/siginfo_t.h>
+#include <sys/wait.h>
 
 // check and wait any child process exited.
 // return exited_pid. if err, return -1.

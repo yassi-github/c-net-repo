@@ -1,10 +1,11 @@
-#ifndef	_MY_SOCKUTILS_H
-#define	_MY_SOCKUTILS_H	1
+#ifndef _MY_SOCKUTILS_H
+#define _MY_SOCKUTILS_H 1
 
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
 #include "utils.h"
 
 static const int sockopt_enabled = 1;
@@ -44,7 +45,8 @@ extern int init_socket(int port_no) {
 extern int accept_socket(int socket_id) {
   struct sockaddr_in client_address;
   socklen_t client_address_len = sizeof(client_address);
-  return accept(socket_id, (struct sockaddr *)&client_address, &client_address_len);
+  return accept(socket_id, (struct sockaddr *)&client_address,
+                &client_address_len);
 }
 
 #endif
