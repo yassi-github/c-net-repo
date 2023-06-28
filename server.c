@@ -3,6 +3,7 @@
 #include <unistd.h>  // fork,write,read,close,getpid
 
 #include "sockutil.h"  // init_socket,accept_socket
+#include "utils.h"     // err_msg
 #include "waitutil.h"  // wait_exit
 
 #define TCP_PORT 20000
@@ -11,12 +12,15 @@
 // continue waiting until all child processes exited.
 // exited childlen are terminated by wait.
 void terminate_all_childlen(int child_process_counter) {
+  // broadcast sigkill to own pgid
+  if (kill(0, 9) == -1) {
+    err_msg("server: failed to kill child processes");
+  }
   while (child_process_counter > 0) {
     /* wait terminating child process */
     if (wait_exit() > 0) child_process_counter--;
   }
 }
-// exit待ちなんだけどexitになるのはいつ？どこでexitさせてる？
 
 // check there is already exited process.
 // exited process is terminated by wait.
@@ -51,6 +55,7 @@ int child_process(int child_process_counter, int listening_socket,
     if (read(accepted_socket, &_head_char, 1) != 1) {
       // err
       fprintf(stderr, "Illegal termination\n");
+      close(accepted_socket);
       terminate_all_childlen(child_process_counter);
       return 1;
     }
@@ -59,7 +64,9 @@ int child_process(int child_process_counter, int listening_socket,
     // end when ^A received
     if (head_char == CTRL_A) {
       fprintf(stderr, "Finished child (%d)\n", pid);
-      terminate_all_childlen(child_process_counter);
+      // terminate_all_childlen(child_process_counter, accepted_socket);
+      close(accepted_socket);
+      // terminate_exited_processes(child_process_counter);
       return 0;
     }
 

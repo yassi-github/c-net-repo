@@ -1,3 +1,6 @@
+#ifndef	_MY_WAITUTILS_H
+#define	_MY_WAITUTILS_H	1
+
 #include <sys/wait.h>
 #include <bits/types/siginfo_t.h>
 
@@ -12,3 +15,5 @@ extern int wait_exit() {
   }
   return infop.si_pid;
 }
+
+#endif

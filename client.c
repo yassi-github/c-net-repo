@@ -14,7 +14,7 @@
 // default TCP dest port
 #define	TCP_PORT 20000 
 
-static const struct timespec sleep_nanosec = { .tv_sec = (long int) 0, .tv_nsec = (long int) 100 * MSEC };
+static const struct timespec sleep_nanosec = { .tv_sec = (long int) 0, .tv_nsec = (long int) 10 * MSEC };
 
 void err_msg(char *msg)
 {

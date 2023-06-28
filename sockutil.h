@@ -1,4 +1,5 @@
-// #define _XOPEN_SOURCE 500
+#ifndef	_MY_SOCKUTILS_H
+#define	_MY_SOCKUTILS_H	1
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -45,3 +46,5 @@ extern int accept_socket(int socket_id) {
   socklen_t client_address_len = sizeof(client_address);
   return accept(socket_id, (struct sockaddr *)&client_address, &client_address_len);
 }
+
+#endif
