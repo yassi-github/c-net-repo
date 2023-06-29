@@ -1,4 +1,4 @@
-EXENAMES = client server
+EXENAMES = client server-exclusive server-no-exclusive sample-client sample-server
 
 CFLAGS = -std=c11 -D_POSIX_C_SOURCE=200809L -fstack-protector -Wall -Wextra -Werror
 OPTIMIZATION = -O3
@@ -15,22 +15,17 @@ all: $(addprefix bin/, $(EXENAMES))
 
 bin/client: client.c | bin
 	gcc $^ $(CFLAGS) -o $@
-bin/server: server.c | bin
+bin/server-exclusive: server-exclusive.c | bin
+	gcc $^ $(CFLAGS) -o $@
+bin/server-no-exclusive: server-no-exclusive.c | bin
+	gcc $^ $(CFLAGS) -o $@
+bin/sample-client: sample-client.c | bin
+	gcc $^ $(CFLAGS) -o $@
+bin/sample-server: sample-server.c | bin
 	gcc $^ $(CFLAGS) -o $@
 
 bin:
 	mkdir -p bin
 
-.PHONY: release
-release: $(addprefix release-bin/, $(EXENAMES))
-
-release-bin/client: client.c | release-bin
-	gcc $^ -std=c11 -D_POSIX_C_SOURCE=200809L -o $@
-release-bin/server: server.c | release-bin
-	gcc $^ -std=c11 -D_POSIX_C_SOURCE=200809L -o $@
-
-release-bin:
-	mkdir -p release-bin
-
 clean:
-	rm -rf *.o bin release-bin
+	rm -rf *.o bin
