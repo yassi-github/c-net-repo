@@ -7,6 +7,7 @@
 #include <stdio.h>       // snprintf
 #include <sys/socket.h>  // socket,setsockopt,bind,listen
 #include <sys/types.h>
+#include <stdlib.h> // exit
 
 #include "utils.h"  // err_msg
 

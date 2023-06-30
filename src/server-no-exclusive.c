@@ -1,6 +1,8 @@
+#include <signal.h>  // kill
 #include <stdio.h>   // fprintf
 #include <string.h>  // strlen
 #include <unistd.h>  // fork,write,read,close,getpid
+#include <stdlib.h> // malloc,atoi
 
 #include "sockutil.h"  // init_socket,accept_socket
 #include "utils.h"     // err_msg
