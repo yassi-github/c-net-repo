@@ -22,7 +22,8 @@
 // ここではmallocで新たに領域を確保して、そこに引数の文字列をコピーしているので、
 // この関数に渡したポインタがdropしても、これで設定した構造体の中身は無事。
 // ただし使い終わったらその中身のポインタをfreeするべきなので管理が面倒になる。
-int message_t_init(message_t *_message_t, int number, const char *id_1, const char *id_2) {
+int message_t_init(message_t *_message_t, int number, const char *id_1,
+                   const char *id_2) {
   char *id_1_p = (char *)malloc(ID_MAXSIZE);
   if (id_1_p == NULL) return -1;
   char *id_2_p = (char *)malloc(ID_MAXSIZE);

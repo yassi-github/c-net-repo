@@ -1,9 +1,9 @@
-#include <fcntl.h>        // fcntl
-#include <stdbool.h>      // bool
-#include <stdio.h>        // fileno,fprintf
-#include <stdlib.h>       // exit,atoi
-#include <string.h>       // strlen
-#include <unistd.h>       // read,write,close
+#include <fcntl.h>    // fcntl
+#include <stdbool.h>  // bool
+#include <stdio.h>    // fileno,fprintf
+#include <stdlib.h>   // exit,atoi
+#include <string.h>   // strlen
+#include <unistd.h>   // read,write,close
 
 #include "errorutil.h"  // error_msg
 #include "sockutil.h"   // connect_server

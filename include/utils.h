@@ -15,7 +15,7 @@
 //   noreturn void foo() { exit 0; }
 #define no_return [[noreturn]]
 #else
-#include <stdnoreturn.h> // noreturn
+#include <stdnoreturn.h>  // noreturn
 #define no_return noreturn
 #endif
 
