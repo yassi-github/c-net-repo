@@ -69,16 +69,9 @@ unit_build() {
     return $?
 }
 
-subcmd_test() {
-    local CC=g++
-    local TESTS="$(find ${g_SOURCEDIR}/ -type f -name *_test.cc)"
-
-    # compile in parallel
-    echo "${TESTS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
-        bash -c 'echo [WIP] do_test_compile like '"${CC}"' {}'
-
-}
-
+# return 0 if succeed (including no compile occured)
+# return 1 if compile error
+# return other (xargs exitcode) is unexpected
 subcmd_all() {
     local MAIN_SRCS="$(find ${g_SOURCEDIR}/ -maxdepth 1 -type f -name *.c)"
 
@@ -112,13 +105,82 @@ subcmd_all() {
     esac
 }
 
-subcmd_clean() {
-    echo rm -rf $(find -type f -name "*.o") ${g_BINDIR}
-         rm -rf $(find -type f -name "*.o") ${g_BINDIR}
+# arg: path to testfile
+# return 0 if succeed
+# return 1 or other if compile error or test fail
+unit_test() {
+    local MAIN_TEST="${1:?"test source not found"}"
+    local _TESTBIN="${MAIN_TEST##*/}"
+    local TESTBIN="${g_TESTDIR}/${_TESTBIN%.cc}.out"
+    local CC=g++
+    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR}"
+    local LIBSRCS="$(find ${g_LIBDIR}/ -type f -name *.c)"
+
+    mkdir -p "${g_TESTDIR}"
+
+    # compile in parallel
+    # echo "${TESTS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
+    #     bash -c '
+    #                 '"${CC}"' '"${CFLAGS}"' -o "$(sed "s%^.*/\(.*\)\.cc$%'"${g_TESTDIR}"'/\1.out%g" <<< {})" {} '"${LIBSRCS//$'\n'/ }"'
+    #             '
+
+    # compile
+    ${CC} ${MAIN_TEST} ${LIBSRCS} ${CFLAGS} -o ${TESTBIN}
+
+    local rc=$?
+
+    do_test() {
+        ./${TESTBIN}
+    }
+
+    [[ ${rc} == 0 ]] && do_test ; return $?
+    return ${rc}
+}
+
+# return 0 if succeed
+# return 1 if compile error
+# return 123 or other if unexpected error
+subcmd_test_all() {
+    local CC=g++
+    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR}"
+    local LIBSRCS="$(find ${g_LIBDIR}/ -type f -name *.c)"
+    local TESTS="$(find ${g_SOURCEDIR}/ -type f -name *_test.cc)"
+
+    mkdir -p "${g_TESTDIR}"
+
+    # test in iterate
+    echo "${TESTS// /$'\n'}" | xargs -i{} \
+        bash -c '
+                    source ./build.sh
+                    unit_test {} ; unit_test_rc=$?
+                    exit ${unit_test_rc}
+                ' 2>/dev/null
+    local xargs_rc=$?
+
+    case ${xargs_rc} in
+            0)
+                # all passed
+                return 0
+            ;;
+            123)
+                # compile error or test fail or other error occured
+                return 1
+            ;;
+            *)
+                # unexpected xargs error
+                return ${xargs_rc}
+            ;;
+    esac
 }
 
 
-main() {    
+subcmd_clean() {
+    echo rm -rf $(find -type f -name "*.o") ${g_BINDIR} ${g_TESTDIR}/*.out
+         rm -rf $(find -type f -name "*.o") ${g_BINDIR} ${g_TESTDIR}/*.out
+}
+
+
+main() {
     local subcmd="${1:-all}"
     case "${subcmd}" in
         "all")
@@ -127,8 +189,9 @@ main() {
             exit ${rc}
         ;;
         "test")
-            subcmd_test
-            exit 0
+            subcmd_test_all
+            local rc=$?
+            exit ${rc}
         ;;
         "clean")
             subcmd_clean
@@ -183,7 +246,7 @@ readonly g_SOURCEDIR=src
 # readonly g_LIBDIR=${g_SOURCEDIR}/lib
 readonly g_LIBDIR=lib
 readonly g_BINDIR=bin
-# readonly g_TESTDIR=test
+readonly g_TESTDIR=test
 
 DEBUG=0
 while getopts d OPT
