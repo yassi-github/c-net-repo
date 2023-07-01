@@ -1,4 +1,5 @@
 #include <fcntl.h>        // fcntl
+#include <stdbool.h>      // bool
 #include <stdio.h>        // fileno,fprintf
 #include <stdlib.h>       // exit,atoi
 #include <stdnoreturn.h>  // noreturn

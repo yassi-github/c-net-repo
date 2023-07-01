@@ -1,12 +1,8 @@
-#ifndef _MY_MESSAGEUTIL_H
-#define _MY_MESSAGEUTIL_H 1
+#include "messageutil.h"
 
 #include <stdio.h>   // snprintf
 #include <stdlib.h>  // malloc
 #include <string.h>  // memset
-
-#define MESSAGE_MAXSIZE 100
-#define ID_MAXSIZE 35
 
 // void pr(char *msg, int msg_size) {
 //   for (int i = 0; i < msg_size; i++) {
@@ -14,12 +10,6 @@
 //   }
 //   printf("\n");
 // }
-
-typedef struct {
-  int number;
-  char *id_1;
-  char *id_2;
-} message_t;
 
 // _message_t に引数のメンバをセットする
 // return 0 if succeed. return -1 if err.
@@ -128,5 +118,3 @@ int message_extract(message_t *_message_t, const char *message) {
   // message_t_init(msg_member_p, "hage", "hgoe");
   return message_t_init(_message_t, number, id_1, id_2);
 }
-
-#endif

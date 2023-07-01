@@ -1,13 +1,12 @@
-#ifndef _MY_SOCKUTILS_H
-#define _MY_SOCKUTILS_H 1
+#include "sockutil.h"
 
 #include <arpa/inet.h>   // htonl,htons
 #include <netdb.h>       // getaddrinfo
 #include <netinet/in.h>  // htonl,htons
 #include <stdio.h>       // snprintf
+#include <stdlib.h>      // exit
 #include <sys/socket.h>  // socket,setsockopt,bind,listen
 #include <sys/types.h>
-#include <stdlib.h> // exit
 
 #include "utils.h"  // err_msg
 
@@ -15,7 +14,7 @@ static const int sockopt_enabled = 1;
 
 // do socket,bind,listen.
 // returns opened socket_id.
-extern int init_socket(int port_no) {
+int init_socket(int port_no) {
   // socket
   int sockid = socket(AF_INET, SOCK_STREAM, 0);
   if (sockid < 0) {
@@ -30,10 +29,10 @@ extern int init_socket(int port_no) {
 
   // bind
   struct sockaddr_in server_address;
-    server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(port_no);
-    server_address.sin_addr.s_addr = inet_addr("0.0.0.0");
-                                      
+  server_address.sin_family = AF_INET;
+  server_address.sin_port = htons(port_no);
+  server_address.sin_addr.s_addr = inet_addr("0.0.0.0");
+
   if (bind(sockid, (struct sockaddr *)&server_address, sizeof(server_address)) <
       0) {
     err_msg("server: cannot bind local address");
@@ -47,7 +46,7 @@ extern int init_socket(int port_no) {
   return sockid;
 }
 
-extern int accept_socket(int socket_id) {
+int accept_socket(int socket_id) {
   struct sockaddr_in client_address;
   socklen_t client_address_len = sizeof(client_address);
   return accept(socket_id, (struct sockaddr *)&client_address,
@@ -92,5 +91,3 @@ int connect_server(char *hostname, int port_no) {
 
   return sockfd;
 }
-
-#endif

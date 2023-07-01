@@ -2,25 +2,24 @@
 #include <stdlib.h>  // malloc
 #include <string.h>
 
-#include "messageutil.h" // message_extract
-#include "utils.h" // err_msg
-
+#include "messageutil.h"  // message_extract
+#include "utils.h"        // err_msg
 
 int main() {
-// message_t msg_member = {.number = 0, .id_1 = "NONE", .id_2 = "NONE"};
-// char *msg = new_message(msg_member, MESSAGE_MAXSIZE);
-// char message[MESSAGE_MAXSIZE];
-// strncpy(message, msg, MESSAGE_MAXSIZE);
-message_t ext_msg_member;
-int err = message_extract(&ext_msg_member, "0 a b");
-if (err != 0) {
-  err_msg("failed to extract msg");
-}
-// // (void )! extract_message(msg);
-// // free affects till message_t members
-// // free(msg);
-printf("%d %s %s\n", ext_msg_member.number, ext_msg_member.id_1,
-ext_msg_member.id_2);
+  // message_t msg_member = {.number = 0, .id_1 = "NONE", .id_2 = "NONE"};
+  // char *msg = new_message(msg_member, MESSAGE_MAXSIZE);
+  // char message[MESSAGE_MAXSIZE];
+  // strncpy(message, msg, MESSAGE_MAXSIZE);
+  message_t ext_msg_member;
+  int err = message_extract(&ext_msg_member, "0 a b");
+  if (err != 0) {
+    err_msg("failed to extract msg");
+  }
+  // // (void )! extract_message(msg);
+  // // free affects till message_t members
+  // // free(msg);
+  printf("%d %s %s\n", ext_msg_member.number, ext_msg_member.id_1,
+         ext_msg_member.id_2);
   return 0;
 }
 

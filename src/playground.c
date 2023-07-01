@@ -1,5 +1,5 @@
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "utils.h"
 
@@ -16,6 +16,4 @@
 //   return 0;
 // }
 
-int main() {
-  return 0;
-}
+int main() { return 0; }
