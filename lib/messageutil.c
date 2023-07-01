@@ -4,6 +4,8 @@
 #include <stdlib.h>  // malloc
 #include <string.h>  // memset
 
+#include "errorutil.h"  // error
+
 // void pr(char *msg, int msg_size) {
 //   for (int i = 0; i < msg_size; i++) {
 //     printf("%d: %x(%c)\n", i, msg[i], msg[i]);
@@ -22,18 +24,18 @@
 // ここではmallocで新たに領域を確保して、そこに引数の文字列をコピーしているので、
 // この関数に渡したポインタがdropしても、これで設定した構造体の中身は無事。
 // ただし使い終わったらその中身のポインタをfreeするべきなので管理が面倒になる。
-int message_t_init(message_t *_message_t, int number, const char *id_1,
-                   const char *id_2) {
+error message_t_init(message_t *_message_t, int number, const char *id_1,
+                     const char *id_2) {
   char *id_1_p = (char *)malloc(ID_MAXSIZE);
-  if (id_1_p == NULL) return -1;
+  if (id_1_p == NULL) return error_new("message_t_init: failed to malloc");
   char *id_2_p = (char *)malloc(ID_MAXSIZE);
-  if (id_2_p == NULL) return -1;
+  if (id_2_p == NULL) return error_new("message_t_init: failed to malloc");
   snprintf(id_1_p, ID_MAXSIZE, "%s", id_1);
   snprintf(id_2_p, ID_MAXSIZE, "%s", id_2);
   _message_t->number = number;
   _message_t->id_1 = id_1_p;
   _message_t->id_2 = id_2_p;
-  return 0;
+  return NULL;
 }
 
 // このように直接代入すれば、mallocなどしなくても動く。
@@ -64,28 +66,28 @@ int valid(const message_t *member) {
 
 // create new message.
 // we should free returned addr.
-char *new_message(const message_t message_member, const int message_size) {
-  if (valid(&message_member) != 0) {
+char *new_message(const message_t *message_member, const int message_size) {
+  if (valid(message_member) != 0) {
     exit(1);
   }
 
   // char zero[message_size];
   // memset(zero, 0, message_size);
 
-  char *message = (char *)malloc(sizeof(char) * message_size);
+  char *message = (char *)calloc(message_size, sizeof(char));
 
   // char message[message_size];
   // snprintf(message, message_size, "%d %s %s%s", message_member.number,
   //          message_member.id_1, message_member.id_2, zero);
-  snprintf(message, message_size, "%d %s %s", message_member.number,
-           message_member.id_1, message_member.id_2);
+  snprintf(message, message_size, "%d %s %s", message_member->number,
+           message_member->id_1, message_member->id_2);
 
   // strncpy(message_ret, message, message_size);
   return message;
 }
 
 // extract message string into message_t member.
-int message_extract(message_t *_message_t, const char *message) {
+error message_extract(message_t *_message_t, const char *message) {
   int number;
   char id_1[ID_MAXSIZE];
   char id_2[ID_MAXSIZE];

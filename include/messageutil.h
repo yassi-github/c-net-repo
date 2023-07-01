@@ -1,6 +1,8 @@
 #ifndef _MY_MESSAGEUTIL_H
 #define _MY_MESSAGEUTIL_H 1
 
+#include "errorutil.h"  // error
+
 #define MESSAGE_MAXSIZE 100
 #define ID_MAXSIZE 35
 
@@ -12,8 +14,8 @@ typedef struct {
 
 // _message_t に引数のメンバをセットする
 // return 0 if succeed. return -1 if err.
-int message_t_init(message_t *_message_t, int number, const char *id_1,
-                   const char *id_2);
+error message_t_init(message_t *_message_t, int number, const char *id_1,
+                     const char *id_2);
 
 // 構造体メンバの文字列がポインタ(char *)で、それに値を入れたい場合、
 // mallocをしなければ、snprintfが適切に動いてくれない(segmentation fault になる)
@@ -54,9 +56,9 @@ int valid(const message_t *member);
 
 // create new message.
 // we should free returned addr.
-char *new_message(const message_t message_member, const int message_size);
+char *new_message(const message_t *message_member, const int message_size);
 
 // extract message string into message_t member.
-int message_extract(message_t *_message_t, const char *message);
+error message_extract(message_t *_message_t, const char *message);
 
 #endif
