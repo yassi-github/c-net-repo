@@ -178,6 +178,11 @@ subcmd_clean() {
          rm -rf $(find -type f -name "*.o") ${g_BINDIR} ${g_TESTDIR}/*.out
 }
 
+subcmd_format() {
+    CFILES="$(find -type f \( -name "*.h" -o -name "*.c" -o -name "*.cc" \))"
+    clang-format --style=Google -i ${CFILES//$'\n'/ }
+}
+
 
 main() {
     local subcmd="${1:-all}"
@@ -194,6 +199,10 @@ main() {
         ;;
         "clean")
             subcmd_clean
+            exit 0
+        ;;
+        "format")
+            subcmd_format
             exit 0
         ;;
         "help")
