@@ -11,6 +11,6 @@ int accept_socket(int socket_id);
 // Input  : hostname and port number
 // Output : socket for listen
 //
-int connect_server(char *hostname, int port_no);
+int connect_server(const char *hostname, int port_no);
 
 #endif

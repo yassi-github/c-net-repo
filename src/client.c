@@ -6,8 +6,9 @@
 #include <string.h>       // strlen
 #include <unistd.h>       // read,write,close
 
-#include "sockutil.h"  // connect_server
-#include "utils.h"     // mili_sleep,err_msg
+#include "errorutil.h"  // error_msg
+#include "sockutil.h"   // connect_server
+#include "utils.h"      // mili_sleep
 
 #define TCP_PORT 20000
 #define CTRL_A '\001'
@@ -20,7 +21,7 @@ noreturn void clean_up(int socket_fd) {
   // +1 は何？？
   ssize_t err = write(fileno(stdout), END_STRING, strlen(END_STRING) + 1);
   if (err == -1) {
-    err_msg("client: cannot write to stdout");
+    error_msg("client: cannot write to stdout");
   }
 
   // deferred close

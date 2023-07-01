@@ -6,8 +6,6 @@
 //   ignore_retval foo()
 #define ignore_retval (void)!
 
-void err_msg(char *msg);
-
 // = 1 mili sec in nano unit
 #define MSEC 1000000
 

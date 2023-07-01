@@ -2,8 +2,8 @@
 #include <stdlib.h>  // malloc
 #include <string.h>
 
+#include "errorutil.h"    // error_msg
 #include "messageutil.h"  // message_extract
-#include "utils.h"        // err_msg
 
 int main() {
   // message_t msg_member = {.number = 0, .id_1 = "NONE", .id_2 = "NONE"};
@@ -13,7 +13,7 @@ int main() {
   message_t ext_msg_member;
   int err = message_extract(&ext_msg_member, "0 a b");
   if (err != 0) {
-    err_msg("failed to extract msg");
+    error_msg("failed to extract msg");
   }
   // // (void )! extract_message(msg);
   // // free affects till message_t members

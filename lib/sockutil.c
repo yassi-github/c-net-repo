@@ -8,7 +8,7 @@
 #include <sys/socket.h>  // socket,setsockopt,bind,listen
 #include <sys/types.h>
 
-#include "utils.h"  // err_msg
+#include "errorutil.h"  // error_msg
 
 static const int sockopt_enabled = 1;
 
@@ -18,13 +18,13 @@ int init_socket(int port_no) {
   // socket
   int sockid = socket(AF_INET, SOCK_STREAM, 0);
   if (sockid < 0) {
-    err_msg("server: cannot open datastream socket");
+    error_msg("server: cannot open datastream socket");
   }
   // set SO_REUSEADDR to be available same addr even less than 2 mins from
   // closed
   if (setsockopt(sockid, SOL_SOCKET, SO_REUSEADDR, &sockopt_enabled,
                  sizeof(sockopt_enabled)) < 0) {
-    err_msg("server: failed to set socket option SO_REUSEADDR");
+    error_msg("server: failed to set socket option SO_REUSEADDR");
   }
 
   // bind
@@ -35,12 +35,12 @@ int init_socket(int port_no) {
 
   if (bind(sockid, (struct sockaddr *)&server_address, sizeof(server_address)) <
       0) {
-    err_msg("server: cannot bind local address");
+    error_msg("server: cannot bind local address");
   }
 
   // listen
   if (listen(sockid, 5) == -1) {
-    err_msg("server: listen failed");
+    error_msg("server: listen failed");
   }
 
   return sockid;
@@ -58,7 +58,7 @@ int accept_socket(int socket_id) {
 // Input  : hostname and port number
 // Output : socket for listen
 //
-int connect_server(char *hostname, int port_no) {
+int connect_server(const char *hostname, int port_no) {
   char port_str[10];
   snprintf(port_str, 10, "%d", port_no);
 
@@ -72,7 +72,7 @@ int connect_server(char *hostname, int port_no) {
   int sockfd =
       socket(result->ai_family, result->ai_socktype, result->ai_protocol);
   if (sockfd == -1) {
-    err_msg("client: can't open datastream socket");
+    error_msg("client: can't open datastream socket");
   }
 
   int ipaddr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr;
@@ -82,7 +82,7 @@ int connect_server(char *hostname, int port_no) {
          port_no);
 
   if (connect(sockfd, result->ai_addr, result->ai_addrlen) < 0) {
-    err_msg("client: can't connect to server");
+    error_msg("client: can't connect to server");
   }
 
   printf(

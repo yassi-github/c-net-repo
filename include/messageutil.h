@@ -12,7 +12,7 @@ typedef struct {
 
 // _message_t に引数のメンバをセットする
 // return 0 if succeed. return -1 if err.
-int message_t_init(message_t *_message_t, int number, char *id_1, char *id_2);
+int message_t_init(message_t *_message_t, int number, const char *id_1, const char *id_2);
 
 // 構造体メンバの文字列がポインタ(char *)で、それに値を入れたい場合、
 // mallocをしなければ、snprintfが適切に動いてくれない(segmentation fault になる)

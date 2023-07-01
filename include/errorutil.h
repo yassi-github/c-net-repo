@@ -1,15 +1,19 @@
 #ifndef _MY_ERRORUTIL_H
 #define _MY_ERRORUTIL_H 1
 
-#include <stdbool.h>  // bool
+#include <stdbool.h>      // bool
+#include <stdnoreturn.h>  // noreturn
 
 typedef const char *error;
 
 // create error.
-error errors_new(char *text);
+error error_new(const char *text);
 
 // compare error.
 // return true if same else false
-bool errors_is(error err, error target);
+bool error_is(error err, error target);
+
+// show error msg and exit
+noreturn void error_msg(error msg);
 
 #endif

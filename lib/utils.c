@@ -1,15 +1,8 @@
 #include "utils.h"
 
 #include <ctype.h>   // memmove
-#include <stdio.h>   // perror
-#include <stdlib.h>  // exit
 #include <string.h>  // strlen,memmove
 #include <time.h>    // timespec,nanosleep
-
-void err_msg(char *msg) {
-  perror(msg);
-  exit(1);
-}
 
 int mili_sleep(int mili_sec) {
   int msec = mili_sec % 1000;
