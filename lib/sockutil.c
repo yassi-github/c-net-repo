@@ -29,9 +29,11 @@ extern int init_socket(int port_no) {
   }
 
   // bind
-  struct sockaddr_in server_address = {.sin_family = AF_INET,
-                                       .sin_addr.s_addr = inet_addr("0.0.0.0"),
-                                       .sin_port = htons(port_no)};
+  struct sockaddr_in server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(port_no);
+    server_address.sin_addr.s_addr = inet_addr("0.0.0.0");
+                                      
   if (bind(sockid, (struct sockaddr *)&server_address, sizeof(server_address)) <
       0) {
     err_msg("server: cannot bind local address");

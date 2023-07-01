@@ -1,10 +1,12 @@
 #ifndef _MY_UTILS_H
 #define _MY_UTILS_H 1
 
+#ifndef CPP // CPP non compat feature
 // bool type
 #define bool _Bool
 #define false ((bool)+0)
 #define true ((bool)+1)
+#endif // CPP
 
 // ignore return value
 // example:

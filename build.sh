@@ -113,7 +113,8 @@ unit_test() {
     local _TESTBIN="${MAIN_TEST##*/}"
     local TESTBIN="${g_TESTDIR}/${_TESTBIN%.cc}.out"
     local CC=g++
-    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR}"
+    # add compile option `CPP` to adjust non compat code
+    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR} -std=c++20 -DCPP"
     local LIBSRCS="$(find ${g_LIBDIR}/ -type f -name *.c)"
 
     mkdir -p "${g_TESTDIR}"
@@ -141,10 +142,7 @@ unit_test() {
 # return 1 if compile error
 # return 123 or other if unexpected error
 subcmd_test_all() {
-    local CC=g++
-    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR}"
-    local LIBSRCS="$(find ${g_LIBDIR}/ -type f -name *.c)"
-    local TESTS="$(find ${g_SOURCEDIR}/ -type f -name *_test.cc)"
+    local TESTS="$(find -type f -name *_test.cc)"
 
     mkdir -p "${g_TESTDIR}"
 
@@ -152,7 +150,7 @@ subcmd_test_all() {
     echo "${TESTS// /$'\n'}" | xargs -i{} \
         bash -c '
                     source ./build.sh
-                    unit_test {} ; unit_test_rc=$?
+                    unit_test {} 2>&1 ; unit_test_rc=$?
                     exit ${unit_test_rc}
                 ' 2>/dev/null
     local xargs_rc=$?
@@ -160,6 +158,7 @@ subcmd_test_all() {
     case ${xargs_rc} in
             0)
                 # all passed
+                echo "PASSED all test."
                 return 0
             ;;
             123)
