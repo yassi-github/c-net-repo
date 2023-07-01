@@ -21,6 +21,7 @@ is_need_compile() {
 # build stale libs
 # return 0 if built
 # return 1 if no need to build
+# return 255 or other if compile error occured
 unit_build() {
     local MAIN="${1:?"build source undefined"}"
     local SRCS="${MAIN} $(find ${g_LIBDIR}/ -type f -name *.c) "
@@ -44,11 +45,13 @@ unit_build() {
         bash -c 'source build.sh # read "is_need_compile" function
                 if $(is_need_compile {}); then
                     echo '"${CC}"' '"${CFLAGS}"' -o $(sed "s/^\(.*\).c$/\1.o/" <<< "{}") -c {}
-                         '"${CC}"' '"${CFLAGS}"' -o $(sed "s/^\(.*\).c$/\1.o/" <<< "{}") -c {}
-                    exit 1
+                         '"${CC}"' '"${CFLAGS}"' -o $(sed "s/^\(.*\).c$/\1.o/" <<< "{}") -c {} 2>&1 # stdout compile error msg
+                    [[ $? == 0 ]] && exit 1 || exit 255
                 fi
-                exit 0'
-    # rc is 123 if there was compile at least once. else 0.
+                exit 0' 2>/dev/null # throw away bash exitcode message like `exited with status 255; aborting`
+    # rc is 0 if there was no compile.
+    # rc is 123 if there was compile at least once.
+    # rc is 124 if there was compile error at least once.
     local xargs_rc=$?
 
     # create binary
@@ -57,9 +60,13 @@ unit_build() {
     if [[ -e "${TARGET}" ]] && [[ ${xargs_rc} == 0 ]]; then
         return 1
     fi
+    # compile error
+    if [[ ${xargs_rc} == 124 ]]; then
+        return 255
+    fi
     echo ${CC} ${CFLAGS} -o ${TARGET} ${SRCS}
          ${CC} ${CFLAGS} -o ${TARGET} ${SRCS}
-    return 0
+    return $?
 }
 
 subcmd_test() {
@@ -77,14 +84,32 @@ subcmd_all() {
 
     echo "${MAIN_SRCS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
         bash -c 'source ./build.sh
-                unit_build {} ; unit_build_rc=$?
-                [[ ${unit_build_rc} == 0 ]] && exit 1 || exit 0'
+                unit_build {} 2>&1 ; unit_build_rc=$?
+                [[ ${unit_build_rc} == 0 ]] && exit 1 # succeed
+                [[ ${unit_build_rc} == 1 ]] && exit 0 # no build
+                exit ${unit_build_rc} # compile error' 2>/dev/null # throw away bash exitcode message like `exited with status 255; aborting`
     # xargs tells exitcode 123 when there was non zero exit in the xargs scrpt, after all xargs script done.
+    # and exitcode 0 is only when all xargs script exit with 0.
     local xargs_rc=$?
 
-    # xargs_rc 0 means there all failed to compile.
-    # xargs_rc 123 means there was succees to compile at least once.
-    [[ ${xargs_rc} == 0 ]] && echo "Nothing to build."
+    case ${xargs_rc} in
+        0)
+            # there all failed to compile.
+            echo "Nothing to build." && return 0
+        ;;
+        123)
+            # succees to compile at least once.
+            return 0
+        ;;
+        124)
+            # compile error
+            return 1
+        ;;
+        *)
+            # unexpected
+            return ${xargs_rc}
+        ;;
+    esac
 }
 
 subcmd_clean() {
@@ -98,7 +123,8 @@ main() {
     case "${subcmd}" in
         "all")
             subcmd_all
-            exit 0
+            local rc=$?
+            exit ${rc}
         ;;
         "test")
             subcmd_test
@@ -129,10 +155,19 @@ main() {
             local target_src="${subcmd}"
             if [[ -e ${target_src} ]]; then
                 unit_build "${target_src}"
-                if [[ $? == 1 ]]; then
-                    echo "Nothing to build."
-                fi
-                exit 0
+                local rc=$?
+                case ${rc} in
+                    1)
+                        echo "Nothing to build."
+                        exit 0
+                    ;;
+                    255)
+                        exit 1
+                    ;;
+                    *)
+                        exit ${rc}
+                    ;;
+                esac
             else
                 echo "build source not found."
                 echo "To show command help, run \"build.sh help\"."
