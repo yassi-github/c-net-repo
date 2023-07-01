@@ -2,20 +2,19 @@
 #include <stdbool.h>      // bool
 #include <stdio.h>        // fileno,fprintf
 #include <stdlib.h>       // exit,atoi
-#include <stdnoreturn.h>  // noreturn
 #include <string.h>       // strlen
 #include <unistd.h>       // read,write,close
 
 #include "errorutil.h"  // error_msg
 #include "sockutil.h"   // connect_server
-#include "utils.h"      // mili_sleep
+#include "utils.h"      // mili_sleep,no_return
 
 #define TCP_PORT 20000
 #define CTRL_A '\001'
 #define END_STRING "\nEnd.\n"
 
 // ending message and close socket
-noreturn void clean_up(int socket_fd) {
+no_return void clean_up(int socket_fd) {
   // stdout end message
   // fprintf じゃいかんのか？
   // +1 は何？？
