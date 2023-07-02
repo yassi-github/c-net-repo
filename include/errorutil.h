@@ -6,11 +6,15 @@
 #include "utils.h"  // no_return
 
 // error can contain NULL
+#ifndef NULL // NULL
 #define NULL ((void *)0)
+#endif // NULL
 
 typedef const char *error;
 
 // create error.
+// return text and previous errno message.
+// returned error string should free up.
 error error_new(const char *text);
 
 // compare error.
@@ -18,6 +22,6 @@ error error_new(const char *text);
 bool error_is(error err, error target);
 
 // show error msg and exit
-no_return void error_msg(error msg);
+no_return void error_exit(error msg);
 
 #endif

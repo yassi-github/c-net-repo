@@ -4,13 +4,13 @@
 
 #include "errorutil.h"
 
-extern void error_msg(error err);
+extern void error_exit(error err);
 
 TEST(member_init, init) {
   message_t msg_member;
   error err = message_t_init(&msg_member, 0, "NONE", "NONE");
   if (err != NULL) {
-    error_msg(err);
+    error_exit(err);
   }
   // defer message_t_delete(&msg_member);
 
@@ -23,7 +23,7 @@ TEST(member_extract, extract) {
   message_t ext_msg_member;
   error err = message_extract(&ext_msg_member, "0 NONE NONE");
   if (err != NULL) {
-    error_msg(err);
+    error_exit(err);
   }
   // defer message_t_delete(&ext_msg_member);
 
@@ -36,7 +36,7 @@ TEST(new_string, string) {
   message_t msg_member;
   error err = message_t_init(&msg_member, 0, "NONE", "NONE");
   if (err != NULL) {
-    error_msg(err);
+    error_exit(err);
   }
 
   char *message_string = message_string_new(&msg_member, MESSAGE_MAXSIZE);

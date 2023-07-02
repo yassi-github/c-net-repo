@@ -4,7 +4,7 @@
 #include <string.h>  // strlen
 #include <unistd.h>  // fork,write,read,close,getpid
 
-#include "errorutil.h"  // error_msg
+#include "errorutil.h"  // error_exit
 #include "sockutil.h"   // init_socket,accept_socket
 #include "waitutil.h"   // wait_exit
 
@@ -16,7 +16,7 @@
 void terminate_all_childlen(int child_process_counter) {
   // broadcast sigkill to own pgid
   if (kill(0, 9) == -1) {
-    error_msg("server: failed to kill child processes");
+    error_exit("server: failed to kill child processes");
   }
   while (child_process_counter > 0) {
     /* wait terminating child process */
@@ -78,7 +78,7 @@ int child_process(int child_process_counter, int listening_socket,
     // send data
     ssize_t err = write(accepted_socket, return_data, strlen(return_data));
     if (err == -1) {
-      error_msg("server: cannot write to socket");
+      error_exit("server: cannot write to socket");
     }
     printf("child (%d) sended %s\n", pid, return_data);
 

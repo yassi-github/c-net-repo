@@ -80,7 +80,7 @@ void message_t_delete(const message_t *_message_t) {
 char *message_string_new(const message_t *_message_t, const int message_size) {
   error err = message_t_valid(_message_t);
   if (err != NULL) {
-    error_msg(err);
+    error_exit(err);
   }
 
   // message string must fill with zero

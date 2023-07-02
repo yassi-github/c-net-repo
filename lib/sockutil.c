@@ -8,7 +8,7 @@
 #include <sys/socket.h>  // socket,setsockopt,bind,listen
 #include <sys/types.h>
 
-#include "errorutil.h"  // error_msg
+#include "errorutil.h"  // error_exit
 
 static const int sockopt_enabled = 1;
 
@@ -18,13 +18,13 @@ int init_socket(int port_no) {
   // socket
   int sockid = socket(AF_INET, SOCK_STREAM, 0);
   if (sockid < 0) {
-    error_msg("server: cannot open datastream socket");
+    error_exit("server: cannot open datastream socket");
   }
   // set SO_REUSEADDR to be available same addr even less than 2 mins from
   // closed
   if (setsockopt(sockid, SOL_SOCKET, SO_REUSEADDR, &sockopt_enabled,
                  sizeof(sockopt_enabled)) < 0) {
-    error_msg("server: failed to set socket option SO_REUSEADDR");
+    error_exit("server: failed to set socket option SO_REUSEADDR");
   }
 
   // bind
@@ -35,12 +35,12 @@ int init_socket(int port_no) {
 
   if (bind(sockid, (struct sockaddr *)&server_address, sizeof(server_address)) <
       0) {
-    error_msg("server: cannot bind local address");
+    error_exit("server: cannot bind local address");
   }
 
   // listen
   if (listen(sockid, 5) == -1) {
-    error_msg("server: listen failed");
+    error_exit("server: listen failed");
   }
 
   return sockid;
@@ -72,7 +72,7 @@ int connect_server(const char *hostname, int port_no) {
   int sockfd =
       socket(result->ai_family, result->ai_socktype, result->ai_protocol);
   if (sockfd == -1) {
-    error_msg("client: can't open datastream socket");
+    error_exit("client: can't open datastream socket");
   }
 
   int ipaddr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr;
@@ -82,7 +82,7 @@ int connect_server(const char *hostname, int port_no) {
          port_no);
 
   if (connect(sockfd, result->ai_addr, result->ai_addrlen) < 0) {
-    error_msg("client: can't connect to server");
+    error_exit("client: can't connect to server");
   }
 
   printf(
