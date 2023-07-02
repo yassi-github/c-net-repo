@@ -9,15 +9,15 @@
 // we should use utils.h to use noreturn.
 // because at c++, noreturn is not compat.
 // but it using [[noreturn]] instead.
-#ifdef CPP
+#ifdef __cplusplus
 // noreturn compat c++
 // example:
 //   noreturn void foo() { exit 0; }
 #define no_return [[noreturn]]
-#else
+#else // __cplusplus
 #include <stdnoreturn.h>  // noreturn
 #define no_return noreturn
-#endif
+#endif // __cplusplus
 
 // = 1 mili sec in nano unit
 #define MSEC 1000000

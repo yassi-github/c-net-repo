@@ -113,8 +113,7 @@ unit_test() {
     local _TESTBIN="${MAIN_TEST##*/}"
     local TESTBIN="${g_TESTDIR}/${_TESTBIN%.cc}.out"
     local CC=g++
-    # add compile option `CPP` to adjust non compat code
-    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR} -std=c++20 -DCPP"
+    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR} -std=c++20"
     local LIBSRCS="$(find ${g_LIBDIR}/ -type f -name *.c)"
 
     mkdir -p "${g_TESTDIR}"
