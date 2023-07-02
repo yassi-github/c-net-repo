@@ -5,6 +5,9 @@
 
 #include "utils.h"  // no_return
 
+// error can contain NULL
+#define NULL ((void *)0)
+
 typedef const char *error;
 
 // create error.
