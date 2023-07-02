@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  - push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: docker://srzzumix/googletest:latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+
+      # compile
+
+      - name: build all
+        run: |
+          ./build.sh all
+
+      # test
+
+      - name: run test
+        run: |
+          ./build.sh test

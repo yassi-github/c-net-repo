@@ -1,5 +1,8 @@
 # C-NET-REPO
 
+[![Tests](https://github.com/yassi-github/c-net-repo/actions/workflows/test.yaml/badge.svg)](https://github.com/yassi-github/c-net-repo/actions/workflows/test.yaml)
+
+
 ## Dev Requirements
 
 - [googletest](https://github.com/google/googletest)
