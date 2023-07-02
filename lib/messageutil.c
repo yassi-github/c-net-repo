@@ -1,12 +1,27 @@
 #include "messageutil.h"
 
-#include <stdio.h>   // snprintf
-#include <stdlib.h>  // malloc
-#include <string.h>  // memset
+#include <fcntl.h>     // open
+#include <stdio.h>     // snprintf
+#include <stdlib.h>    // malloc
+#include <string.h>    // memset
+#include <sys/stat.h>  // open
+#include <unistd.h>    // lseek,read,write,close
 
 #include "errorutil.h"  // error
 
 // == private ==
+
+// internal error messages
+struct _error_msg_list {
+  const char *error_seek;
+  const char *error_read;
+  const char *error_write;
+};
+static const struct _error_msg_list error_msg_list = {
+    .error_seek = "failed to allocate memory to output previous error message",
+    .error_read = "cannot read",
+    .error_write = "cannot write",
+};
 
 static error message_t_valid(const message_t *_message_t) {
   if (&(_message_t->number) == NULL) {
@@ -19,6 +34,78 @@ static error message_t_valid(const message_t *_message_t) {
     return error_new("id_2 too big");
   }
   return NULL;
+}
+
+
+// continue reading till whole size read
+static error continue_reading(int _store_fd, const int _data_index,
+                              char *_read_dest, const int _want_read_length) {
+  char read_buf[_want_read_length];
+  ssize_t read_length = read(_store_fd, read_buf, _want_read_length);
+  switch (read_length) {
+    case -1:
+      // read error.
+      // fallthrough
+    case 0:
+      // read failed.
+      // read offset was EOF or _want_read_length was 0.
+      return error_new(error_msg_list.error_read);
+    default:
+      // it may read is not complete but its not error
+      // because it could caused by sigint or pipe,term read.
+      if (read_length < _want_read_length) {
+        int remain_read_length = _want_read_length - read_length;
+        char trailing_read_buf[remain_read_length];
+        error err = continue_reading(_store_fd, _data_index, trailing_read_buf,
+                                     remain_read_length);
+        if (err != NULL) {
+          return err;
+        }
+        // copy string from (read_but + trailing_read_buf) to _read_dest
+        snprintf(_read_dest, _want_read_length + remain_read_length, "%s%s",
+                 read_buf, trailing_read_buf);
+        return NULL;
+      }
+      // successfly read whole data.
+      // copy string from read_buf to _read_dest.
+      snprintf(_read_dest, _want_read_length, "%s", read_buf);
+      return NULL;
+  }
+  // --- unreachable ---
+}
+
+// continue writing till whole size wrote
+static error continue_writing(int _store_fd, const int _data_index,
+                              const char *_write_src,
+                              const int _want_write_length) {
+  char write_buf[_want_write_length];
+  snprintf(write_buf, _want_write_length, "%s", _write_src);
+  ssize_t wrote_length = write(_store_fd, write_buf, _want_write_length);
+  switch (wrote_length) {
+    case -1:
+      // write error.
+      // fallthrough
+    case 0:
+      // write failed or _want_write_length was 0.
+      return error_new(error_msg_list.error_write);
+    default:
+      // it may write is not complete but its not error
+      // because it could caused by sigint or pipe write.
+      if (wrote_length < _want_write_length) {
+        int remain_write_length = _want_write_length - wrote_length;
+        // shift to remove leading alreasy wrote string
+        memmove(write_buf, &(write_buf[wrote_length]),
+                strlen(&(write_buf[wrote_length])));
+        error err = continue_writing(_store_fd, _data_index, write_buf,
+                                     remain_write_length);
+        if (err != NULL) {
+          return err;
+        }
+        return NULL;
+      }
+      return NULL;
+  }
+  // --- unreachable ---
 }
 
 // == public ==
@@ -93,3 +180,75 @@ char *message_string_new(const message_t *_message_t, const int message_size) {
 }
 
 void message_string_delete(char *_message_string) { free(_message_string); }
+
+// open new store file.
+error message_store_new(int *_new_store_fd, const char *_store_name) {
+  const int open_mode = 0644;
+  *_new_store_fd = open(_store_name, O_RDWR | O_CREAT, open_mode);
+  if (*_new_store_fd == -1) {
+    return error_new("store util: failed to open store file");
+  }
+  return NULL;
+}
+
+// read indexed data from store_fd to _read_dest.
+// plus index reads from BOF,
+// and minus index reads from EOF.
+error message_store_read(int _store_fd, const int _data_index,
+                         char *_read_dest) {
+  off_t offset;
+  if (_data_index < 0) {
+    offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_END);
+  } else {
+    offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_SET);
+  }
+  if (offset == -1) {
+    return error_new("store_read: failed to lseek");
+  }
+
+  error err =
+      continue_reading(_store_fd, _data_index, _read_dest, MESSAGE_MAXSIZE);
+  if (err != NULL) {
+    return err;
+  }
+
+  return NULL;
+}
+
+// write data from _write_src to indexed store_fd.
+// plus index writes from BOF,
+// and minus index writes from EOF.
+// write is not insert just replace.
+error message_store_write(int _store_fd, const int _data_index,
+                          const char *_write_src) {
+  off_t offset;
+  if (_data_index < 0) {
+    offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_END);
+  } else {
+    offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_SET);
+  }
+  if (offset == -1) {
+    return error_new("store_write: failed to lseek");
+  }
+
+  error err =
+      continue_writing(_store_fd, _data_index, _write_src, MESSAGE_MAXSIZE);
+  if (err != NULL) {
+    return err;
+  }
+
+  return NULL;
+}
+
+// delete data on the store file
+// delete: fill w/t zero.
+error message_store_delete(int _store_fd, const int _data_index) {
+  char zero[MESSAGE_MAXSIZE];
+  memset(zero, '\0', MESSAGE_MAXSIZE);
+  // TODO: chg behavior zero fill to shift actual data
+  error err = message_store_write(_store_fd, _data_index, zero);
+  if (err != NULL) {
+    return err;
+  }
+  return NULL;
+}
