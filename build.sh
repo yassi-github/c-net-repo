@@ -23,6 +23,10 @@ is_need_compile() {
 # return 1 if no need to build
 # return 255 or other if compile error occured
 unit_build() {
+    if [[ $# == 2 ]]; then
+        local force_flag="${1}"
+        shift
+    fi
     local MAIN="${1:?"build source undefined"}"
     local SRCS="${MAIN} $(find ${g_LIBDIR}/ -type f -name *.c) "
     local OBJS="${SRCS//'.c '/'.o '}"
@@ -56,8 +60,8 @@ unit_build() {
 
     # create binary
     # Now, object file is created so obj is later than src.
-    # do nothing if destination binary already created and there was no obj compile.
-    if [[ -e "${TARGET}" ]] && [[ ${xargs_rc} == 0 ]]; then
+    # do nothing if force_flag is undefined and there was no obj compile.
+    if [[ ! -v force_flag ]] && [[ ${xargs_rc} == 0 ]]; then
         return 1
     fi
     # compile error
@@ -73,11 +77,25 @@ unit_build() {
 # return 1 if compile error
 # return other (xargs exitcode) is unexpected
 subcmd_all() {
+    # check compile necessity in parallel
+    echo "$(find ${g_LIBDIR}/ -type f -name *.c)" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
+        bash -c 'source build.sh # read "is_need_compile" function
+                if $(is_need_compile {}); then
+                    exit 1
+                fi
+                exit 0'
+    # rc is 0 if there is no need to compile.
+    # rc is 123 if there is need to compile.
+    local xargs_rc=$?
+    if [[ ${xargs_rc} == 123 ]]; then
+        local force_flag="-f"
+    fi
+
     local MAIN_SRCS="$(find ${g_SOURCEDIR}/ -maxdepth 1 -type f -name *.c)"
 
     echo "${MAIN_SRCS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
         bash -c 'source ./build.sh
-                unit_build {} 2>&1 ; unit_build_rc=$?
+                unit_build '"${force_flag}"' {} 2>&1 ; unit_build_rc=$?
                 [[ ${unit_build_rc} == 0 ]] && exit 1 # succeed
                 [[ ${unit_build_rc} == 1 ]] && exit 0 # no build
                 exit ${unit_build_rc} # compile error' 2>/dev/null # throw away bash exitcode message like `exited with status 255; aborting`
