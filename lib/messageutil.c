@@ -6,12 +6,22 @@
 
 #include "errorutil.h"  // error
 
-// void pr(char *msg, int msg_size) {
-//   for (int i = 0; i < msg_size; i++) {
-//     printf("%d: %x(%c)\n", i, msg[i], msg[i]);
-//   }
-//   printf("\n");
-// }
+// == private ==
+
+static error message_t_valid(const message_t *_message_t) {
+  if (&(_message_t->number) == NULL) {
+    return error_new("number must be set");
+  }
+  if (strlen(_message_t->id_1) > ID_MAXSIZE) {
+    return error_new("id_1 too big");
+  }
+  if (strlen(_message_t->id_2) > ID_MAXSIZE) {
+    return error_new("id_2 too big");
+  }
+  return NULL;
+}
+
+// == public ==
 
 // _message_t に引数のメンバをセットする
 // return 0 if succeed. return -1 if err.
@@ -50,75 +60,36 @@ error message_t_init(message_t *_message_t, int number, const char *id_1,
 // return 0;
 // }
 
-// return 0 if ok, -1 if failed.
-// just print err msg to stderr not exit.
-int valid(const message_t *member) {
-  if (strlen(member->id_1) > ID_MAXSIZE) {
-    fprintf(stderr, "id_1 too big");
-    return -1;
-  }
-  if (strlen(member->id_2) > ID_MAXSIZE) {
-    fprintf(stderr, "id_2 too big");
-    return -1;
-  }
-  return 0;
+// extract message string into message_t member.
+error message_extract(message_t *_message_t, const char *_message_string) {
+  int number;
+  char id_1[ID_MAXSIZE];
+  char id_2[ID_MAXSIZE];
+  sscanf(_message_string, "%d %s %s", &number, id_1, id_2);
+
+  return message_t_init(_message_t, number, id_1, id_2);
+}
+
+void message_t_delete(const message_t *_message_t) {
+  free(_message_t->id_1);
+  free(_message_t->id_2);
 }
 
 // create new message.
 // we should free returned addr.
-char *new_message(const message_t *message_member, const int message_size) {
-  if (valid(message_member) != 0) {
-    exit(1);
+char *message_string_new(const message_t *_message_t, const int message_size) {
+  error err = message_t_valid(_message_t);
+  if (err != NULL) {
+    error_msg(err);
   }
 
-  // char zero[message_size];
-  // memset(zero, 0, message_size);
+  // message string must fill with zero
+  char *message_string = (char *)calloc(MESSAGE_MAXSIZE, sizeof(char));
 
-  char *message = (char *)calloc(message_size, sizeof(char));
+  snprintf(message_string, message_size, "%d %s %s", _message_t->number,
+           _message_t->id_1, _message_t->id_2);
 
-  // char message[message_size];
-  // snprintf(message, message_size, "%d %s %s%s", message_member.number,
-  //          message_member.id_1, message_member.id_2, zero);
-  snprintf(message, message_size, "%d %s %s", message_member->number,
-           message_member->id_1, message_member->id_2);
-
-  // strncpy(message_ret, message, message_size);
-  return message;
+  return message_string;
 }
 
-// extract message string into message_t member.
-error message_extract(message_t *_message_t, const char *message) {
-  int number;
-  char id_1[ID_MAXSIZE];
-  char id_2[ID_MAXSIZE];
-  sscanf(message, "%d %s %s", &number, id_1, id_2);
-
-  // (void)!message;
-  // message_t message_member = { .number = number, .id_1 = id_1, .id_2 = id_2
-  // };
-  //   message_t msg_member = {0};
-  // message_t *msg_member_p = (message_t *)malloc(sizeof(message_t));
-
-  //   message_t *msg_member_p = (message_t *)malloc(sizeof(message_t));
-  // message_t *msg_member_p = &msg_member;
-  // (*msg_member_p).number = number;
-  //   msg_member_p->id_1 = id_1;
-  //   msg_member_p->id_2 = id_2;
-  //   msg_member_p->id_1 = "nl";
-  //   msg_member_p->id_2 = "nl";
-  //   msg_member_p->id_1 = msg_member.id_1;
-  //   msg_member_p->id_2 = msg_member.id_2;
-  //   snprintf(msg_member_p->id_1, ID_MAXSIZE, "%s", id_1);
-  //   snprintf(msg_member_p->id_2, ID_MAXSIZE, "%s", id_2);
-  // strcpy((*msg_member_p).id_1, "nl");
-  // strcpy((*msg_member_p).id_2, "nl");
-  //   strcpy((*msg_member_p).id_1, id_1);
-  //   strcpy((*msg_member_p).id_2, id_2);
-  //   if (valid(msg_member_p) != 0) {
-  //     exit(1);
-  //   }
-
-  // message_t_init(msg_member_p);
-  // message_t_init(msg_member_p, "hage", "hgoe");
-  return message_t_init(_message_t, number, id_1, id_2);
-}
+void message_string_delete(char *_message_string) { free(_message_string); }
