@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: docker://srzzumix/googletest:latest
+      image: ghcr.io/yassi-github/googletest:latest
     steps:
       - name: checkout
         uses: actions/checkout@v3
