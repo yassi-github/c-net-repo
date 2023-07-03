@@ -70,7 +70,12 @@ unit_build() {
     fi
     echo ${CC} ${CFLAGS} -o ${TARGET} ${SRCS}
          ${CC} ${CFLAGS} -o ${TARGET} ${SRCS}
-    return $?
+    local ld_rc=$?
+    # compile (ld) error
+    if [[ ${ld_rc} != 0 ]]; then
+        return 255;
+    fi
+    return 0;
 }
 
 # return 0 if succeed (including no compile occured)
