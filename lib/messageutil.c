@@ -74,11 +74,14 @@ static error continue_reading(int _store_fd, const int _data_index,
   // --- unreachable ---
 }
 
-// continue writing till whole size wrote
+// continue writing till whole size wrote.
+// fill other space w/t zero.
 static error continue_writing(int _store_fd, const int _data_index,
                               const char *_write_src,
                               const int _want_write_length) {
+  // copy _write_src to local buffer to prepare write interrupt
   char write_buf[_want_write_length];
+  memset(write_buf, '\0', _want_write_length);
   snprintf(write_buf, _want_write_length, "%s", _write_src);
   ssize_t wrote_length = write(_store_fd, write_buf, _want_write_length);
   switch (wrote_length) {
@@ -163,16 +166,13 @@ void message_t_delete(const message_t *_message_t) {
 }
 
 // create new message.
+// message is char array string so does not contain trailing zeros.
 error message_string_new(const message_t *_message_t,
                          char message_string[MESSAGE_MAXSIZE]) {
   error err = message_t_valid(_message_t);
   if (err != NULL) {
     return err;
   }
-
-  // message string must fill with zero
-  // message_string = (char *)calloc(MESSAGE_MAXSIZE, sizeof(char));
-  memset(message_string, '\0', MESSAGE_MAXSIZE);
 
   // calc message size
   unsigned int number_digit;
@@ -222,6 +222,9 @@ error message_store_new(int *_new_store_fd, const char *_store_name) {
 error message_store_read(int _store_fd, const int _data_index,
                          char *_read_dest) {
   const int message_count = lseek(_store_fd, 0L, SEEK_END) / MESSAGE_MAXSIZE;
+  if (message_count == 0) {
+    return (error) "store_read: store file is blank";
+  }
   if (message_count < abs(_data_index)) {
     return (error) "store_read: invalid index";
   }
@@ -297,10 +300,9 @@ error message_store_write(int _store_fd, const int _data_index,
 //    -3-2-1
 // ```
 error message_store_delete(int _store_fd, const int _data_index) {
-  char zero[MESSAGE_MAXSIZE];
-  memset(zero, '\0', MESSAGE_MAXSIZE);
+  const char zero = '\0';
   // TODO: chg behavior zero fill to shift actual data
-  error err = message_store_write(_store_fd, _data_index, zero);
+  error err = message_store_write(_store_fd, _data_index, &zero);
   if (err != NULL) {
     return err;
   }

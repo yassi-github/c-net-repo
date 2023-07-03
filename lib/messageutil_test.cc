@@ -61,7 +61,14 @@ TEST(store_crud, testtxt) {
   // file exist
   EXPECT_EQ(0, access(fname, F_OK));
 
-  const char wdata[MESSAGE_MAXSIZE] = "10 test data";
+  message_t w_message_member;
+  if ((err = message_t_init(&w_message_member, 10, "12E", "ASG>8")) != NULL) {
+    error_exit(err);
+  }
+  char wdata[MESSAGE_MAXSIZE];
+  if ((err = message_string_new(&w_message_member, wdata)) != NULL) {
+    error_exit(err);
+  }
   // write to EOF (append)
   if ((err = message_store_write(test_store_file, 0, wdata)) != NULL) {
     error_exit(err);
