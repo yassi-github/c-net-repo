@@ -201,13 +201,17 @@ subcmd_clean() {
 }
 
 subcmd_format() {
-    CFILES="$(find -type f \( -name "*.h" -o -name "*.c" -o -name "*.cc" \))"
-    clang-format --style=Google -i ${CFILES//$'\n'/ }
+    local TARGETS="${@}"
+    if [[ "${TARGETS}" == "" ]]; then
+        TARGETS="$(find -type f \( -name "*.h" -o -name "*.c" -o -name "*.cc" \))"
+    fi
+    clang-format --style=Google -i ${TARGETS//$'\n'/ }
 }
 
 
 main() {
     local subcmd="${1:-all}"
+    shift
     case "${subcmd}" in
         "all")
             subcmd_all
@@ -224,7 +228,7 @@ main() {
             exit 0
         ;;
         "format")
-            subcmd_format
+            subcmd_format "${@}"
             exit 0
         ;;
         "help")
@@ -294,7 +298,7 @@ done
 # soruce guard
 # run main when called by shell
 if [[ ${0##*/} == "build.sh" ]]; then
-    main "${1}"
+    main "${@}"
 else
     :
 fi
