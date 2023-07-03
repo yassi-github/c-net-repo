@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>  // lseek
-
+#include <sys/file.h> //flock
 #include "errorutil.h"
 #include "messageutil.h"
 
@@ -11,6 +11,10 @@ error child_process(const char *store_name) {
   if ((err = message_store_new(&store_fd, store_name)) != NULL) {
     return err;
   }
+  #ifdef FLOCK
+  flock(store_fd, LOCK_EX);
+  puts("locked");
+  #endif
 
   // create message string to send
   message_t message_members;
@@ -55,6 +59,10 @@ error child_process(const char *store_name) {
     return err;
   }
 
+  #ifdef FLOCK
+  flock(store_fd, LOCK_UN);
+  puts("unlocked");
+  #endif
   close(store_fd);
 
   return NULL;
