@@ -39,7 +39,7 @@ unit_build() {
         OPTIMIZATION=-O0
         DEBUGOPT=-g
     fi
-    local CFLAGS="${DEBUGOPT} -std=c11 -D_POSIX_C_SOURCE=200809L -fstack-protector -I ${g_HEADERDIR} ${OPTIMIZATION} -Wall -Wextra -Werror"
+    local CFLAGS="${DEBUGOPT} -std=c11 -D_POSIX_C_SOURCE=200809L -fstack-protector -lm -I ${g_HEADERDIR} ${OPTIMIZATION} -Wall -Wextra -Werror"
 
     # ensure dirs exists
     mkdir -p "${g_HEADERDIR}" "${g_SOURCEDIR}" "${g_LIBDIR}" "${g_BINDIR}"
@@ -68,8 +68,8 @@ unit_build() {
     if [[ ${xargs_rc} == 124 ]]; then
         return 255
     fi
-    echo ${CC} ${CFLAGS} -o ${TARGET} ${SRCS}
-         ${CC} ${CFLAGS} -o ${TARGET} ${SRCS}
+    echo ${CC} ${SRCS} ${CFLAGS} -o ${TARGET}
+         ${CC} ${SRCS} ${CFLAGS} -o ${TARGET}
     local ld_rc=$?
     # compile (ld) error
     if [[ ${ld_rc} != 0 ]]; then
@@ -136,7 +136,7 @@ unit_test() {
     local _TESTBIN="${MAIN_TEST##*/}"
     local TESTBIN="${g_TESTDIR}/${_TESTBIN%.cc}.out"
     local CC=g++
-    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR} -std=c++20"
+    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR} -std=c++20 -lm"
     local LIBSRCS="$(find ${g_LIBDIR}/ -type f -name *.c)"
 
     mkdir -p "${g_TESTDIR}"
