@@ -39,7 +39,7 @@ unit_build() {
         OPTIMIZATION=-O0
         DEBUGOPT=-g
     fi
-    local CFLAGS="${DEBUGOPT} -std=c11 -D_POSIX_C_SOURCE=200809L -fstack-protector -lm -I ${g_HEADERDIR} ${OPTIMIZATION} -Wall -Wextra -Werror"
+    local CFLAGS="${DEBUGOPT} -std=c11 -D_POSIX_C_SOURCE=200809L -fstack-protector -lm ${USERFLAG} -I ${g_HEADERDIR} ${OPTIMIZATION} -Wall -Wextra -Werror"
 
     # ensure dirs exists
     mkdir -p "${g_HEADERDIR}" "${g_SOURCEDIR}" "${g_LIBDIR}" "${g_BINDIR}"
@@ -99,7 +99,7 @@ subcmd_all() {
     local MAIN_SRCS="$(find ${g_SOURCEDIR}/ -maxdepth 1 -type f -name *.c)"
 
     echo "${MAIN_SRCS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
-        bash -c 'source ./build.sh
+        bash -c 'source ./build.sh '"${OPT_ALL}"'
                 unit_build '"${force_flag}"' {} 2>&1 ; unit_build_rc=$?
                 [[ ${unit_build_rc} == 0 ]] && exit 1 # succeed
                 [[ ${unit_build_rc} == 1 ]] && exit 0 # no build
@@ -136,7 +136,7 @@ unit_test() {
     local _TESTBIN="${MAIN_TEST##*/}"
     local TESTBIN="${g_TESTDIR}/${_TESTBIN%.cc}.out"
     local CC=g++
-    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR} -std=c++20 -lm"
+    local CFLAGS="-g -pthread -lgtest -lgtest_main -I ${g_HEADERDIR} -std=c++20 -lm ${USERFLAG}"
     local LIBSRCS="$(find ${g_LIBDIR}/ -type f -name *.c)"
 
     mkdir -p "${g_TESTDIR}"
@@ -171,7 +171,7 @@ subcmd_test_all() {
     # test in iterate
     echo "${TESTS// /$'\n'}" | xargs -i{} \
         bash -c '
-                    source ./build.sh
+                    source ./build.sh '"${OPT_ALL}"'
                     unit_test {} 2>&1 ; unit_test_rc=$?
                     exit ${unit_test_rc}
                 ' 2>/dev/null
@@ -233,15 +233,18 @@ main() {
         ;;
         "help")
             echo "Usage:"
-            echo -e "\tbuild.sh [option] [subcmd/target_source]"
+            echo -e "\tbuild.sh [options] [subcmd/target_source]"
             echo -e ""
             echo -e "\toption:"
             echo -e "\t\t-d\tEnable debug mode"
+            echo -e "\t\t-D<NAME>\tAdd compile option"
+            echo -e "\t\t-h\tShow this text"
             echo -e ""
             echo -e "\tsubcmd:"
             echo -e "\t\tall\tBuild all (default)"
             echo -e "\t\ttest\tRun test"
             echo -e "\t\tclean\tRemove bin and obj files"
+            echo -e "\t\tformat [files..]\tFormat source files"
             echo -e "\t\thelp\tShow this text"
             echo -e "\t\t\`target_source\`\tPath to source file to build"
             echo ""
@@ -282,17 +285,30 @@ readonly g_LIBDIR=lib
 readonly g_BINDIR=bin
 readonly g_TESTDIR=test
 
+OPT_ALL=""
 DEBUG=0
-while getopts d OPT
+USERFLAG=""
+while getopts dD:h OPT
 do
 case "${OPT}" in
     d)
-        echo "build with debug mode."
-        echo ""
         DEBUG=1
-        shift
+        OPT_ALL+="-d "
+    ;;
+    D)
+        USERFLAG+="-D${OPTARG} "
+        OPT_ALL+="-D${OPTARG} "
+    ;;
+    h)
+        main help
     ;;
 esac
+done
+
+# remove flag args
+readonly FLAGARGPATTERN='^-.*'
+while [[ "${1}" =~ ${FLAGARGPATTERN} ]]; do
+shift
 done
 
 # soruce guard
