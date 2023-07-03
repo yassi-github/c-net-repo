@@ -41,8 +41,11 @@ TEST(new_string, string) {
     error_exit(err);
   }
 
-  char *message_string = message_string_new(&msg_member, MESSAGE_MAXSIZE);
-  // defer message_string_delete(message_string);
+  char message_string[MESSAGE_MAXSIZE];
+  err = message_string_new(&msg_member, message_string);
+  if (err != NULL) {
+    error_exit(err);
+  }
 
   EXPECT_STREQ("0 NONE NONE", message_string);
 }
@@ -59,6 +62,7 @@ TEST(store_crud, testtxt) {
   EXPECT_EQ(0, access(fname, F_OK));
 
   const char wdata[MESSAGE_MAXSIZE] = "10 test data";
+  // write to EOF (append)
   if ((err = message_store_write(test_store_file, 0, wdata)) != NULL) {
     error_exit(err);
   }
@@ -66,13 +70,14 @@ TEST(store_crud, testtxt) {
   EXPECT_EQ(NULL, err);
 
   char rdata[MESSAGE_MAXSIZE];
-  if ((err = message_store_read(test_store_file, 0, rdata)) != NULL) {
+  // read last data
+  if ((err = message_store_read(test_store_file, -1, rdata)) != NULL) {
     error_exit(err);
   }
   // read data is wrote data
   EXPECT_STREQ(wdata, rdata);
 
-  if ((err = message_store_delete(test_store_file, 0)) != NULL) {
+  if ((err = message_store_delete(test_store_file, -1)) != NULL) {
     error_exit(err);
   }
   // file size is same but data is filled by zero
@@ -80,7 +85,7 @@ TEST(store_crud, testtxt) {
   memset(zero, '\0', MESSAGE_MAXSIZE);
   EXPECT_EQ(1 * MESSAGE_MAXSIZE, lseek(test_store_file, 0L, SEEK_END));
   char rdata_deleted[MESSAGE_MAXSIZE];
-  if ((err = message_store_read(test_store_file, 0, rdata_deleted)) != NULL) {
+  if ((err = message_store_read(test_store_file, -1, rdata_deleted)) != NULL) {
     error_exit(err);
   }
   EXPECT_STREQ(zero, rdata_deleted);

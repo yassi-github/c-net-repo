@@ -26,7 +26,8 @@ error message_extract(message_t *_message_t, const char *_message_string);
 void message_t_delete(const message_t *_message_t);
 
 // create new message.
-char *message_string_new(const message_t *_message_t, const int message_size);
+error message_string_new(const message_t *_message_t,
+                         char message_string[MESSAGE_MAXSIZE]);
 
 // free up message string
 void message_string_delete(char *_message_string);
@@ -48,17 +49,39 @@ error message_store_new(int *_store_fd, const char *_store_name);
 // read indexed data from store_fd to _read_dest.
 // plus index reads from BOF,
 // and minus index reads from EOF.
-error message_store_read(int _store_fd, const int _data_index, char *_read_dest);
+// note: index starts from 1
+// so to read last message, set index to `-1`.
+// ```
+// BOF |=|=|=| EOF
+// idx:1 2 3 0
+//    -3-2-1
+// ```
+error message_store_read(int _store_fd, const int _data_index,
+                         char *_read_dest);
 
-// write data from _write_src to indexed store_fd.
-// plus index writes from BOF,
-// and minus index writes from EOF.
+// write message from _write_src to indexed store_fd.
+// plus index is count of message from BOF,
+// and minus index is from EOF.
+// note: index starts from 1
+// so to append message, set index to `0`.
+// ```
+// BOF |=|=|=| EOF
+// idx:1 2 3 0
+//    -3-2-1
+// ```
 // write is not insert just replace.
 error message_store_write(int _store_fd, const int _data_index,
-                  const char *_write_src);
+                          const char *_write_src);
 
 // delete data on the store file
 // delete: fill w/t zero.
+// note: index starts from 1
+// so to delete last message, set index to `-1`.
+// ```
+// BOF |=|=|=| EOF
+// idx:1 2 3 0
+//    -3-2-1
+// ```
 error message_store_delete(int _store_fd, const int _data_index);
 
 #endif

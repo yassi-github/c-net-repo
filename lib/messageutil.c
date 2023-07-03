@@ -1,8 +1,9 @@
 #include "messageutil.h"
 
 #include <fcntl.h>     // open
+#include <math.h>      // log10
 #include <stdio.h>     // snprintf
-#include <stdlib.h>    // malloc
+#include <stdlib.h>    // malloc,abs
 #include <string.h>    // memset
 #include <sys/stat.h>  // open
 #include <unistd.h>    // lseek,read,write,close
@@ -35,7 +36,6 @@ static error message_t_valid(const message_t *_message_t) {
   }
   return NULL;
 }
-
 
 // continue reading till whole size read
 static error continue_reading(int _store_fd, const int _data_index,
@@ -163,20 +163,38 @@ void message_t_delete(const message_t *_message_t) {
 }
 
 // create new message.
-// we should free returned addr.
-char *message_string_new(const message_t *_message_t, const int message_size) {
+error message_string_new(const message_t *_message_t,
+                         char message_string[MESSAGE_MAXSIZE]) {
   error err = message_t_valid(_message_t);
   if (err != NULL) {
-    error_exit(err);
+    return err;
   }
 
   // message string must fill with zero
-  char *message_string = (char *)calloc(MESSAGE_MAXSIZE, sizeof(char));
+  // message_string = (char *)calloc(MESSAGE_MAXSIZE, sizeof(char));
+  memset(message_string, '\0', MESSAGE_MAXSIZE);
 
+  // calc message size
+  unsigned int number_digit;
+  // `log_{10}{e} + 1` is number digit.
+  if (_message_t->number < 0) {
+    // include minus sign ("-") size
+    number_digit = 1 + (int)log10(abs(_message_t->number)) + 1;
+  } else if (_message_t->number == 0) {
+    // log10(0) will fail
+    number_digit = 1;
+  } else {
+    number_digit = (int)log10(_message_t->number) + 1;
+  }
+  // +2 for white space and +1 for lasting zero(\0)
+  size_t message_size = number_digit + strlen(_message_t->id_1) +
+                        strlen(_message_t->id_2) + 2 + 1;
+
+  // write message
   snprintf(message_string, message_size, "%d %s %s", _message_t->number,
            _message_t->id_1, _message_t->id_2);
 
-  return message_string;
+  return NULL;
 }
 
 void message_string_delete(char *_message_string) { free(_message_string); }
@@ -194,13 +212,28 @@ error message_store_new(int *_new_store_fd, const char *_store_name) {
 // read indexed data from store_fd to _read_dest.
 // plus index reads from BOF,
 // and minus index reads from EOF.
+// note: index starts from 1
+// so to read last message, set index to `-1`.
+// ```
+// BOF |=|=|=| EOF
+// idx:1 2 3 0
+//    -3-2-1
+// ```
 error message_store_read(int _store_fd, const int _data_index,
                          char *_read_dest) {
+  const int message_count = lseek(_store_fd, 0L, SEEK_END) / MESSAGE_MAXSIZE;
+  if (message_count < abs(_data_index)) {
+    return (error) "store_read: invalid index";
+  }
+
+  if (_data_index == 0) {
+    return (error) "store_read: read index 0 (EOF) is not allowed";
+  }
   off_t offset;
   if (_data_index < 0) {
     offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_END);
   } else {
-    offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_SET);
+    offset = lseek(_store_fd, (_data_index - 1) * MESSAGE_MAXSIZE, SEEK_SET);
   }
   if (offset == -1) {
     return error_new("store_read: failed to lseek");
@@ -215,17 +248,31 @@ error message_store_read(int _store_fd, const int _data_index,
   return NULL;
 }
 
-// write data from _write_src to indexed store_fd.
-// plus index writes from BOF,
-// and minus index writes from EOF.
+// write message from _write_src to indexed store_fd.
+// plus index is count of message from BOF,
+// and minus index is from EOF.
+// note: index starts from 1
+// so to append message, set index to `0`.
+// ```
+// BOF |=|=|=| EOF
+// idx:1 2 3 0
+//    -3-2-1
+// ```
 // write is not insert just replace.
 error message_store_write(int _store_fd, const int _data_index,
                           const char *_write_src) {
+  const int message_count = lseek(_store_fd, 0L, SEEK_END) / MESSAGE_MAXSIZE;
+  if (message_count < abs(_data_index)) {
+    return (error) "store_read: invalid index";
+  }
+
   off_t offset;
-  if (_data_index < 0) {
+  if (_data_index == 0) {
+    offset = lseek(_store_fd, 0L, SEEK_END);
+  } else if (_data_index < 0) {
     offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_END);
   } else {
-    offset = lseek(_store_fd, _data_index * MESSAGE_MAXSIZE, SEEK_SET);
+    offset = lseek(_store_fd, (_data_index - 1) * MESSAGE_MAXSIZE, SEEK_SET);
   }
   if (offset == -1) {
     return error_new("store_write: failed to lseek");
@@ -242,6 +289,13 @@ error message_store_write(int _store_fd, const int _data_index,
 
 // delete data on the store file
 // delete: fill w/t zero.
+// note: index starts from 1
+// so to delete last message, set index to `-1`.
+// ```
+// BOF |=|=|=| EOF
+// idx:1 2 3 0
+//    -3-2-1
+// ```
 error message_store_delete(int _store_fd, const int _data_index) {
   char zero[MESSAGE_MAXSIZE];
   memset(zero, '\0', MESSAGE_MAXSIZE);
