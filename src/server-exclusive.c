@@ -113,7 +113,7 @@ error child_process(int listening_socket, int accepted_socket,
 // exited childlen are terminated by wait.
 error terminate_all_childlen(int child_process_counter) {
   // broadcast sigkill to own pgid
-  if (kill(0, 9) == -1) {
+  if (kill(0, 9) == -1) { // FIXME: kill all pgid kills parent, we only want to kill children.
     return error_new(error_msg_list.error_kill_children);
   }
   while (child_process_counter > 0) {
