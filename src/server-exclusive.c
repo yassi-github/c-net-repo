@@ -1,12 +1,15 @@
-#include <signal.h>  // kill
-#include <stdio.h>   // printf,fprintf
-#include <stdlib.h>  // atoi
-#include <unistd.h>  // fork,close
+#include <signal.h>    // kill
+#include <stdio.h>     // printf,fprintf
+#include <stdlib.h>    // atoi
+#include <string.h>    // strlen
+#include <sys/file.h>  //flock
+#include <unistd.h>    // fork,close,flock
 
-#include "errorutil.h"  // error_exit
-#include "sockutil.h"   // socket_listen,socket_accept
-#include "utils.h"      // mili_sleep
-#include "waitutil.h"   // wait_exit
+#include "errorutil.h"    // error_exit
+#include "messageutil.h"  // message_t
+#include "sockutil.h"     // socket_listen,socket_accept
+#include "utils.h"        // mili_sleep
+#include "waitutil.h"     // wait_exit
 
 #define TCP_PORT 20000
 #define CTRL_A '\001'
@@ -15,35 +18,94 @@
 struct _error_msg_list {
   const char *error_fork;
   const char *error_kill_children;
+  const char *error_write_sock;
+  const char *error_read_sock;
 };
 static const struct _error_msg_list error_msg_list = {
     .error_fork = "failed to fork",
     .error_kill_children = "failed to kill child processes",
+    .error_write_sock = "cannot write to socket",
+    .error_read_sock = "cannot read from socket",
 };
 
 error child_process(int listening_socket, int accepted_socket,
                     const char *store_name) {
-  printf("CHILD: start childprocess\n");
-  mili_sleep(500);
-  printf("CHILD: close listening socket(%d)\n", listening_socket);
-  mili_sleep(500);
-  printf("CHILD: open file %s\n", store_name);
-  mili_sleep(500);
-  printf("CHILD: lock file %s\n", store_name);
-  mili_sleep(500);
-  printf("CHILD: write message from file %s\n", store_name);
-  mili_sleep(500);
-  printf("CHILD: send message to client(socket %d)\n", accepted_socket);
-  mili_sleep(500);
-  printf("CHILD: recv message to client(socket %d)\n", accepted_socket);
-  mili_sleep(500);
-  printf("CHILD: write message to file %s\n", store_name);
-  mili_sleep(500);
-  printf("CHILD: unlock file %s\n", store_name);
-  mili_sleep(500);
-  printf("CHILD: close file %s\n", store_name);
-  mili_sleep(500);
-  printf("CHILD: end childprocess\n\n");
+  // close unused listen socket
+  close(listening_socket);
+
+  error err;
+  int store_fd;
+  // open
+  if ((err = message_store_new(&store_fd, store_name)) != NULL) {
+    return err;
+  }
+
+#ifdef FLOCK
+  flock(store_fd, LOCK_EX);
+  puts("locked");
+#endif
+
+  // create message string to send
+  message_t message_members;
+  char message_string_tosend[MESSAGE_MAXSIZE];
+  // check store is blank or not
+  if (lseek(store_fd, 0L, SEEK_END) == 0) {
+    // create default message
+    if ((err = message_t_init(&message_members, 0, "NONE", "NONE")) != NULL) {
+      return err;
+    }
+    if ((err = message_string_new(&message_members, message_string_tosend)) !=
+        NULL) {
+      return err;
+    }
+  } else {
+    // read last message from store file
+    if ((err = message_store_read(store_fd, -1, message_string_tosend)) !=
+        NULL) {
+      return err;
+    }
+  }
+
+  // send msg to client
+  ssize_t wrote_size = write(accepted_socket, message_string_tosend,
+                             strlen(message_string_tosend));
+  if (wrote_size == -1) {
+    return error_new(error_msg_list.error_write_sock);
+  }
+
+  // recv msg from client
+  char message_string_torecv[MESSAGE_MAXSIZE];
+  ssize_t read_size =
+      read(accepted_socket, message_string_torecv, MESSAGE_MAXSIZE);
+  if (read_size == -1) {
+    return error_new(error_msg_list.error_read_sock);
+  }
+
+  // increase number in message
+  if ((err = message_extract(&message_members, message_string_torecv)) !=
+      NULL) {
+    return err;
+  }
+  message_members.number += 1;
+  char message_string_tostore[MESSAGE_MAXSIZE];
+  if ((err = message_string_new(&message_members, message_string_tostore)) !=
+      NULL) {
+    return err;
+  }
+
+  // save message to store
+  if ((err = message_store_write(store_fd, 0, message_string_tostore)) !=
+      NULL) {
+    return err;
+  }
+
+#ifdef FLOCK
+  flock(store_fd, LOCK_UN);
+  puts("unlocked");
+#endif
+
+  close(store_fd);
+
   return NULL;
 }
 
@@ -123,17 +185,26 @@ error run_server(const char *data_file, const int port_no) {
     // parent process end
 
     // child process start
-    return child_process(listening_socket, accepted_socket, data_file);
+    err = child_process(listening_socket, accepted_socket, data_file);
+    if (err != NULL) {
+      close(accepted_socket);
+      return err;
+    }
     // child process end
   }
   return NULL;
 }
 
 int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    fprintf(stderr,
+            "Usage: ./server-exclusive <storeFile> [portNo(defaults 20000)]\n");
+    exit(1);
+  }
   // data store file name
-  const char *data_file = argv[0];
+  const char *data_file = argv[1];
   // listen port number
-  const int port_no = (argc > 1) ? atoi(argv[1]) : TCP_PORT;
+  const int port_no = (argc > 2) ? atoi(argv[2]) : TCP_PORT;
 
   printf(
       "[server]\n"
@@ -144,7 +215,8 @@ int main(int argc, char *argv[]) {
 
   error err = run_server(data_file, port_no);
   if (err != NULL) {
-    error_exit(err);
+    fprintf(stderr, "%s\n", err);
+    exit(1);
   }
 
   return 0;
