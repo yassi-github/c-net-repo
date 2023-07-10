@@ -40,10 +40,7 @@ error child_process(int listening_socket, int accepted_socket,
     return err;
   }
 
-#ifdef FLOCK
   flock(store_fd, LOCK_EX);
-  puts("locked");
-#endif
 
   // create message string to send
   message_t message_members;
@@ -99,10 +96,7 @@ error child_process(int listening_socket, int accepted_socket,
     return err;
   }
 
-#ifdef FLOCK
   flock(store_fd, LOCK_UN);
-  puts("unlocked");
-#endif
 
   close(store_fd);
 
