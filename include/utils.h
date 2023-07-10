@@ -28,4 +28,31 @@ int mili_sleep(int mili_sec);
 // strip string
 void trim(char *string);
 
+// #include "errorutil.h" // circular reference
+typedef const char *error;
+
+#include <stddef.h> // size_t
+// split string.
+//
+// example:
+// ```
+// int main() {
+//   char str[] = "addr:port";
+//   char* dest[MAX_LEN];
+//   size_t split_size;
+//   split(str, ":", dest, sizeof(dest) / sizeof(dest[0]), &split_size);
+//   for (size_t idx = 0; idx < split_size; idx++) {
+//     printf("%s\n", dest[idx]);
+//   }
+//   return 0;
+// }
+// ```
+// output:
+// ```
+// addr
+// port
+// ```
+error split(char *src, const char *delim, char **dest, size_t dest_len,
+            size_t *split_count);
+
 #endif
