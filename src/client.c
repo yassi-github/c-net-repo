@@ -94,6 +94,7 @@ int main(int argc, char *argv[]) {
     // defer close(socket_fd)
 
     // try to receive data from socket to receiving_char
+    memset(receiving_char, '\0', MESSAGE_MAXSIZE);
     err = read_socket(socket_fd, receiving_char);
     if (err != NULL) {
       error_exit(err);
