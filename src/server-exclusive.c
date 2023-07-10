@@ -112,10 +112,6 @@ error child_process(int listening_socket, int accepted_socket,
 // continue waiting until all child processes exited.
 // exited childlen are terminated by wait.
 error terminate_all_childlen(int child_process_counter) {
-  // broadcast sigkill to own pgid
-  if (kill(0, 9) == -1) { // FIXME: kill all pgid kills parent, we only want to kill children.
-    return error_new(error_msg_list.error_kill_children);
-  }
   while (child_process_counter > 0) {
     /* wait terminating child process */
     if (wait_exit() > 0) child_process_counter--;
@@ -190,6 +186,7 @@ error run_server(const char *data_file, const int port_no) {
       close(accepted_socket);
       return err;
     }
+    return NULL;
     // child process end
   }
   return NULL;
