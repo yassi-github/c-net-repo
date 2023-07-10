@@ -6,7 +6,7 @@
 #include <unistd.h>   // read,write,close
 
 #include "errorutil.h"  // error_exit
-#include "sockutil.h"   // connect_server
+#include "sockutil.h"   // socket_connect
 #include "utils.h"      // mili_sleep,no_return
 
 #define TCP_PORT 20000
@@ -70,7 +70,11 @@ int main(int argc, char *argv[]) {
   }
 
   int port_no = (argc > 2) ? atoi(argv[2]) : TCP_PORT;
-  int socket_fd = connect_server(argv[1], port_no);
+  int socket_fd;
+  error err = socket_connect(&socket_fd, argv[1], port_no);
+  if (err != NULL) {
+    error_exit(err);
+  }
   // defer close(socket_fd)
 
   // set file statis flag to O_NONBLOCK.
@@ -85,14 +89,14 @@ int main(int argc, char *argv[]) {
   bool ready_to_read = true;
   bool ready_to_write = false;
   char receiving_char, sending_char;
-  int err;
+  int err_int;
 
   while (true) {
     if (ready_to_read) {
       // we wanna read data.
       // try to get stdin to sending_char
-      err = read_stdin(socket_fd, &sending_char);
-      if (err != -1) {
+      err_int = read_stdin(socket_fd, &sending_char);
+      if (err_int != -1) {
         ready_to_read = false;
       }
     }
@@ -108,8 +112,8 @@ int main(int argc, char *argv[]) {
     if (!ready_to_write) {
       // we wanna receive data.
       // try to receive data from socket to receiving_char
-      err = read_socket(socket_fd, &receiving_char);
-      if (err != -1) {
+      err_int = read_socket(socket_fd, &receiving_char);
+      if (err_int != -1) {
         ready_to_write = true;
       }
     }

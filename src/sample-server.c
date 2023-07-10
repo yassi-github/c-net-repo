@@ -5,7 +5,7 @@
 #include <unistd.h>  // fork,write,read,close,getpid
 
 #include "errorutil.h"  // error_exit
-#include "sockutil.h"   // init_socket,accept_socket
+#include "sockutil.h"   // socket_listen,socket_accept
 #include "waitutil.h"   // wait_exit
 
 #define TCP_PORT 20000
@@ -102,7 +102,11 @@ int main(int argc, char *argv[]) {
       data_file, port_no);
 
   // open socket and ready to listen
-  int listening_socket = init_socket(port_no);
+  int listening_socket;
+  error err = socket_listen(&listening_socket, port_no);
+  if (err != NULL) {
+    error_exit(err);
+  }
 
   // number of child processes
   int child_process_counter = 0;
@@ -111,8 +115,9 @@ int main(int argc, char *argv[]) {
     terminate_exited_processes(child_process_counter);
 
     // accept
-    int accepted_socket = accept_socket(listening_socket);
-    if (accepted_socket == -1) {
+    int accepted_socket = -1;
+    error err = socket_accept(&accepted_socket, listening_socket);
+    if (err != NULL) {
       close(listening_socket);
       fprintf(stderr, "server: failed to accept.\n");
       // FIXME: retry

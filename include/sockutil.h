@@ -1,16 +1,19 @@
-#ifndef _MY_SOCKUTILS_H
-#define _MY_SOCKUTILS_H 1
+#ifndef _MY_SOCKUTIL_H
+#define _MY_SOCKUTIL_H 1
+
+#include "errorutil.h"  // error
 
 // do socket,bind,listen.
-// returns opened socket_id.
-int init_socket(int port_no);
+// we should close socket_fd later.
+error socket_listen(int *socket_fd, int port_no);
 
-int accept_socket(int socket_id);
+error socket_accept(int *socket_fd, int socket_id);
 
 // connect server
-// Input  : hostname and port number
-// Output : socket for listen
+// Input  : connected socket to return, hostname, and port number
+// Output : error
 //
-int connect_server(const char *hostname, int port_no);
+// we should close socket_fd later.
+error socket_connect(int *socket_fd, const char *hostname, int port_no);
 
 #endif
