@@ -8,126 +8,127 @@
 #include "errorutil.h"  // error_exit
 #include "sockutil.h"   // socket_connect
 #include "utils.h"      // mili_sleep,no_return
+#include "messageutil.h" // MESSAGE_MAXSIZE
 
 #define TCP_PORT 20000
+#define ID_MAXSIZE 35
 #define CTRL_A '\001'
 #define END_STRING "\nEnd.\n"
+
+// internal error messages
+struct _error_msg_list {
+  const char *error_write_sock;
+  const char *error_read_sock;
+};
+static const struct _error_msg_list error_msg_list = {
+    .error_write_sock = "cannot write to socket",
+    .error_read_sock = "cannot read from socket",
+};
 
 // ending message and close socket
 no_return void clean_up(int socket_fd) {
   // stdout end message
-  // fprintf じゃいかんのか？
-  // +1 は何？？
-  ssize_t err = write(fileno(stdout), END_STRING, strlen(END_STRING) + 1);
-  if (err == -1) {
-    error_exit("client: cannot write to stdout");
-  }
+  printf("%s", END_STRING);
 
   // deferred close
   close(socket_fd);
   exit(0);
 }
 
-// read stdin data to receiving_char.
-// return:
-//   -1 if failed to read,
-//   0 if succeed.
-int read_stdin(int socket_fd, char *sending_char) {
-  if (read(fileno(stdin), sending_char, 1) == 1) {
-    // end when ^A received after sending sending_char
-    if (*sending_char == CTRL_A) {
-      // keep trying to write sending_char to socket until success
-      while (write(socket_fd, sending_char, 1) != 1)
-        ;
-      clean_up(socket_fd);
-      // --- unreachable ---
-    }
-    return 0;
+// write socket data to sending_char.
+error write_socket(int socket_fd, char *sending_char) {
+  int wrote_size = write(socket_fd, sending_char, strlen(sending_char) + 1);
+  if (wrote_size == -1) {
+    return error_msg_list.error_write_sock;
   }
-  return -1;
+  return NULL;
+}
+// read socket data to sending_char.
+error read_socket(int socket_fd, char *receiving_char) {
+  int read_size = read(socket_fd, receiving_char, MESSAGE_MAXSIZE);
+  if (read_size == -1) {
+    // error to read
+    return error_msg_list.error_read_sock;
+  }
+  if (receiving_char[0] == CTRL_A) {
+    clean_up(socket_fd);
+    // --- unreachable ---
+  }
+  return NULL;
 }
 
-// read socket data to sending_char.
-// return:
-//   -1 if failed to read,
-//   0 if succeed.
-int read_socket(int socket_fd, char *receiving_char) {
-  if (read(socket_fd, receiving_char, 1) == 1) {
-    // end when ^A received
-    if (*receiving_char == CTRL_A) {
-      clean_up(socket_fd);
-      // --- unreachable ---
-    }
-    return 0;
-  }
-  return -1;
+no_return void usage() {
+  fprintf(stderr, "Usage: ./client <server_name:[port:=%d]> <id(less than %d bytes)> <loop_max>\n", TCP_PORT, ID_MAXSIZE);
+  exit(1);
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    fprintf(stderr, "Usage: client serv_addr [port_no:=%d]\n", TCP_PORT);
-    exit(1);
+  if (argc < 4) {
+    usage();
   }
-
-  int port_no = (argc > 2) ? atoi(argv[2]) : TCP_PORT;
-  int socket_fd;
-  error err = socket_connect(&socket_fd, argv[1], port_no);
+  error err;
+  char *addr_port[2];
+  size_t split_count;
+  err = split(argv[1], ":", addr_port, sizeof(addr_port) / sizeof(addr_port[0]), &split_count);
   if (err != NULL) {
-    error_exit(err);
+    usage();
   }
-  // defer close(socket_fd)
-
-  // set file statis flag to O_NONBLOCK.
-  // operate to these fd do not block caller.
-  // so read will fail, not wait data when sock buf is blank.
-  // and write will immediately done, not wait enough blank.
-  fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
-  fcntl(fileno(stdout), F_SETFL, O_NONBLOCK);
-  fcntl(socket_fd, F_SETFL, O_NONBLOCK);
-
-  // expect input if ready_to_read else send data
-  bool ready_to_read = true;
-  bool ready_to_write = false;
-  char receiving_char, sending_char;
-  int err_int;
-
-  while (true) {
-    if (ready_to_read) {
-      // we wanna read data.
-      // try to get stdin to sending_char
-      err_int = read_stdin(socket_fd, &sending_char);
-      if (err_int != -1) {
-        ready_to_read = false;
-      }
-    }
-
-    if (!ready_to_read) {
-      // we wanna send data.
-      // try to send sending_char to socket
-      if (write(socket_fd, &sending_char, 1) == 1) {
-        ready_to_read = true;
-      }
-    }
-
-    if (!ready_to_write) {
-      // we wanna receive data.
-      // try to receive data from socket to receiving_char
-      err_int = read_socket(socket_fd, &receiving_char);
-      if (err_int != -1) {
-        ready_to_write = true;
-      }
-    }
-
-    if (ready_to_write) {
-      // we wanna write data.
-      // try to write sending_char to stdout
-      if (write(fileno(stdout), &receiving_char, 1) == 1) {
-        ready_to_write = false;
-      }
-    }
-
-    // For save CPU usage
-    mili_sleep(10);
+  const char *addr = addr_port[0];
+  const int port = (split_count == 2) ? atoi(addr_port[1]) : TCP_PORT;
+  const char *id = argv[2];
+  if (strlen(id) > ID_MAXSIZE) {
+    usage();
   }
-  // --- unreachable ---
+  const int loop_max = atoi(argv[3]);
+
+  char receiving_char[MESSAGE_MAXSIZE];
+  char sending_char[MESSAGE_MAXSIZE];
+
+  for (int i = 0; i < loop_max; i++) {
+    // connect to server
+    int socket_fd;
+    err = socket_connect(&socket_fd, addr, port);
+    if (err != NULL) {
+      error_exit(err);
+    }
+    // defer close(socket_fd)
+
+    // try to receive data from socket to receiving_char
+    err = read_socket(socket_fd, receiving_char);
+    if (err != NULL) {
+      error_exit(err);
+    }
+
+    // stdout received char
+    printf("%s\n", receiving_char);
+
+    // create new message to send
+    message_t message_struct_recv;
+    err = message_extract(&message_struct_recv, receiving_char);
+    if (err != NULL) {
+      error_exit(err);
+    }
+    message_t message_struct_send;
+    err = message_t_init(&message_struct_send, message_struct_recv.number + 1, id, message_struct_recv.id_2);
+    if (err != NULL) {
+      error_exit(err);
+    }
+    err = message_string_new(&message_struct_send, sending_char);
+    if (err != NULL) {
+      error_exit(err);
+    }
+
+    // try to send sending_char to socket
+    err = write_socket(socket_fd, sending_char);
+    if (err != NULL) {
+      error_exit(err);
+    }
+
+    // disconnect
+    close(socket_fd); // deferred
+
+    // wait a bit
+    mili_sleep(1000);
+  }
+  return 0;
 }
