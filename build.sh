@@ -45,7 +45,7 @@ unit_build() {
     mkdir -p "${g_HEADERDIR}" "${g_SOURCEDIR}" "${g_LIBDIR}" "${g_BINDIR}"
 
     # compile object files in parallel
-    echo "${SRCS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
+    echo "${SRCS// /$'\n'}" | xargs -i{} -P$(nproc) \
         bash -c 'source build.sh # read "is_need_compile" function
                 if $(is_need_compile {}); then
                     echo '"${CC}"' '"${CFLAGS}"' -o $(sed "s/^\(.*\).c$/\1.o/" <<< "{}") -c {}
@@ -83,7 +83,7 @@ unit_build() {
 # return other (xargs exitcode) is unexpected
 subcmd_all() {
     # check compile necessity in parallel
-    echo "$(find ${g_LIBDIR}/ -type f -name *.c)" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
+    echo "$(find ${g_LIBDIR}/ -type f -name *.c)" | xargs -i{} -P$(nproc) \
         bash -c 'source build.sh # read "is_need_compile" function
                 if $(is_need_compile {}); then
                     exit 1
@@ -98,7 +98,7 @@ subcmd_all() {
 
     local MAIN_SRCS="$(find ${g_SOURCEDIR}/ -maxdepth 1 -type f -name *.c)"
 
-    echo "${MAIN_SRCS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
+    echo "${MAIN_SRCS// /$'\n'}" | xargs -i{} -P$(nproc) \
         bash -c 'source ./build.sh '"${OPT_ALL}"'
                 unit_build '"${force_flag}"' {} 2>&1 ; unit_build_rc=$?
                 [[ ${unit_build_rc} == 0 ]] && exit 1 # succeed
@@ -142,7 +142,7 @@ unit_test() {
     mkdir -p "${g_TESTDIR}"
 
     # compile in parallel
-    # echo "${TESTS// /$'\n'}" | xargs -i{} -P$(cat /proc/cpuinfo | grep processor | tail -n1 | grep -o [0-9]*) \
+    # echo "${TESTS// /$'\n'}" | xargs -i{} -P$(nproc) \
     #     bash -c '
     #                 '"${CC}"' '"${CFLAGS}"' -o "$(sed "s%^.*/\(.*\)\.cc$%'"${g_TESTDIR}"'/\1.out%g" <<< {})" {} '"${LIBSRCS//$'\n'/ }"'
     #             '
