@@ -56,3 +56,27 @@ clientから接続されると fork する。
 - 受け取ったのから新規メッセージ (`数字+1 myid recvid1\0...`) を作成してサーバに送る
 - コネクションを切断
 - ちょっと待つ
+
+## 課題2
+
+### ふるまい
+
+親: 準備→子プロセス生成→loop{ じゃんけんの手入力受付,全子の手決定→結果表示 }
+子: 手を決める乱数を初期化(リエントラントシード)→loop{ 親の指示待ち→手を決めて親に渡す }
+
+- 終了条件を適当に決める
+- 途中で子の追加と削除もできるバージョンもあり
+    - キー入力で追加削除を行う
+
+### 仕様
+
+#### 親
+
+init(): なんか準備
+create_child(): 子プロセス生成
+parent_janken_loop(): loop{ input_card(), fix_child_card(), show_card() }
+
+#### 子
+
+init_seed(): set seed
+child_janken_loop(): loop{ wait_command(), rand_card(), pass_card_to_parent() }

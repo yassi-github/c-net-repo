@@ -1,79 +1,87 @@
+// 親プロセスから子プロセスに対してメッセージを送る．このとき，親プロセ
+// スは 0.5秒 ごとにメッセージを10回送り，子プロセスは連続してメッセー
+// ジを受け取るようにする．
+// 送り側のタイミングに合わせて受け側がメッセージを受け取っていることを
+// 示す例となっている．
+
 #include <stdio.h>
-#include <sys/file.h>  //flock
-#include <unistd.h>    // lseek
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
-#include "errorutil.h"
-#include "messageutil.h"
-
-error child_process(const char *store_name) {
-  error err;
-  int store_fd;
-  // open
-  if ((err = message_store_new(&store_fd, store_name)) != NULL) {
-    return err;
-  }
-#ifdef FLOCK
-  flock(store_fd, LOCK_EX);
-  puts("locked");
-#endif
-
-  // create message string to send
-  message_t message_members;
-  char message_string_send[MESSAGE_MAXSIZE];
-  // check store is blank or not
-  if (lseek(store_fd, 0L, SEEK_END) == 0) {
-    // create default message
-    if ((err = message_t_init(&message_members, 0, "NONE", "NONE")) != NULL) {
-      return err;
-    }
-    if ((err = message_string_new(&message_members, message_string_send)) !=
-        NULL) {
-      return err;
-    }
-  } else {
-    // read last message from store file
-    if ((err = message_store_read(store_fd, -1, message_string_send)) != NULL) {
-      return err;
-    }
-  }
-
-  // send msg to client
-  printf("send message `%s` to client.\n", message_string_send);
-
-  // recv msg from client
-  char message_string_recv[MESSAGE_MAXSIZE] = "12 3AS G>8";
-  printf("recv message `%s` from client.\n", message_string_recv);
-
-  // increase number in message
-  if ((err = message_extract(&message_members, message_string_recv)) != NULL) {
-    return err;
-  }
-  message_members.number += 1;
-  char message_string_tosend[MESSAGE_MAXSIZE];
-  if ((err = message_string_new(&message_members, message_string_tosend)) !=
-      NULL) {
-    return err;
-  }
-
-  // append message to store
-  if ((err = message_store_write(store_fd, 0, message_string_tosend)) != NULL) {
-    return err;
-  }
-
-#ifdef FLOCK
-  flock(store_fd, LOCK_UN);
-  puts("unlocked");
-#endif
-  close(store_fd);
-
-  return NULL;
-}
+#define MSGNUM 10
+#define MAXMSG 100  // 最大メッセージ長
 
 int main() {
-  const char *store_name = "test.txt";
-  error err = child_process(store_name);
-  if (err != NULL) {
-    error_exit(err);
+  int pid;
+  int status;
+  int i;
+  int msgid;
+  struct msgbuf {  // メッセージを入れる構造体の定義
+    long mtype;
+    char mtext
+        [1];  // この部分にメッセージを入れるが，必要なメッセージ長に合わせ動的に確保
+  } * mbuf;
+  int msgsize;
+
+  // メッセージキューの確保
+  msgid = msgget(IPC_PRIVATE, IPC_CREAT | 0666);
+  if (msgid == -1) {
+    perror("msgget");
+    exit(1);
+  }
+
+  // メッセージデータを入れる領域の確保
+  if ((mbuf = (struct msgbuf *)malloc(sizeof(struct msgbuf) + MAXMSG)) ==
+      NULL) {
+    perror("memory");
+    exit(1);
+  }
+  pid = fork();
+  switch (pid) {
+    case 0:
+      printf("I am child process\n");
+      for (i = 0; i < MSGNUM; i++) {
+        if ((msgsize = msgrcv(msgid, mbuf, MAXMSG, 0, 0)) == -1) {
+          //                                       ^  ^
+          // これら2つのパラメタを設定することで受け取るメッセージを選択できる
+          // (この例では全て)
+          perror("Message receive");
+        } else {
+          mbuf->mtext[msgsize] = '\0';
+          printf("Child receives \"%s\"\n", mbuf->mtext);
+        }
+      }
+      return 0;
+    case -1:
+      printf("Fork error\n");
+      exit(1);
+    default:
+      printf("Process id of child process is %d\n", pid);
+      mbuf->mtype = 100;
+      for (i = 0; i < MSGNUM; i++) {
+        snprintf(mbuf->mtext, MAXMSG, "%d番目のメッセージ!", i);
+        msgsize = strlen(mbuf->mtext);
+        if (msgsnd(msgid, mbuf, msgsize, 0)) {
+          perror("Message Send");
+        }
+        printf("Parent sends \"%s\"\n", mbuf->mtext);
+        usleep(500000);
+      }
+      if (wait(&status) == -1) {
+        perror("Wait error\n");
+      } else {
+        printf("Return value is %d\n", status);
+      }
+      // メッセージバッファの削除
+      if (msgctl(msgid, IPC_RMID, NULL)) {
+        perror("shmctl");
+        exit(1);
+      }
   }
   return 0;
 }
