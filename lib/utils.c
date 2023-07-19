@@ -33,7 +33,7 @@ error split(char *src, const char *delim, char **dest, size_t dest_len,
             size_t *split_count) {
   size_t split_counter = 0;
 
-  char* word = strtok(src, delim);
+  char *word = strtok(src, delim);
   while (word != NULL) {
     split_counter++;
 

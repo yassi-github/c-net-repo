@@ -5,10 +5,10 @@
 #include <string.h>   // strlen
 #include <unistd.h>   // read,write,close
 
-#include "errorutil.h"  // error_exit
-#include "sockutil.h"   // socket_connect
-#include "utils.h"      // mili_sleep,no_return
-#include "messageutil.h" // MESSAGE_MAXSIZE
+#include "errorutil.h"    // error_exit
+#include "messageutil.h"  // MESSAGE_MAXSIZE
+#include "sockutil.h"     // socket_connect
+#include "utils.h"        // mili_sleep,no_return
 
 #define TCP_PORT 20000
 #define ID_MAXSIZE 35
@@ -58,7 +58,10 @@ error read_socket(int socket_fd, char *receiving_char) {
 }
 
 no_return void usage() {
-  fprintf(stderr, "Usage: ./client <server_name:[port:=%d]> <id(less than %d bytes)> <loop_max>\n", TCP_PORT, ID_MAXSIZE);
+  fprintf(stderr,
+          "Usage: ./client <server_name:[port:=%d]> <id(less than %d bytes)> "
+          "<loop_max>\n",
+          TCP_PORT, ID_MAXSIZE);
   exit(1);
 }
 
@@ -69,7 +72,8 @@ int main(int argc, char *argv[]) {
   error err;
   char *addr_port[2];
   size_t split_count;
-  err = split(argv[1], ":", addr_port, sizeof(addr_port) / sizeof(addr_port[0]), &split_count);
+  err = split(argv[1], ":", addr_port, sizeof(addr_port) / sizeof(addr_port[0]),
+              &split_count);
   if (err != NULL) {
     usage();
   }
@@ -110,7 +114,8 @@ int main(int argc, char *argv[]) {
       error_exit(err);
     }
     message_t message_struct_send;
-    err = message_t_init(&message_struct_send, message_struct_recv.number + 1, id, message_struct_recv.id_2);
+    err = message_t_init(&message_struct_send, message_struct_recv.number + 1,
+                         id, message_struct_recv.id_2);
     if (err != NULL) {
       error_exit(err);
     }
@@ -126,7 +131,7 @@ int main(int argc, char *argv[]) {
     }
 
     // disconnect
-    close(socket_fd); // deferred
+    close(socket_fd);  // deferred
 
     // wait a bit
     mili_sleep(1000);

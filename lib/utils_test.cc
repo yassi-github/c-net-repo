@@ -22,6 +22,7 @@ TEST(split_failtest, split_result_no_space) {
   char string[] = "  ws string   ";
   char* dest[1];
   size_t split_size;
-  error err = split(string, " ", dest, sizeof(dest) / sizeof(dest[0]), &split_size);
+  error err =
+      split(string, " ", dest, sizeof(dest) / sizeof(dest[0]), &split_size);
   EXPECT_STREQ("split: too many words to dest", err);
 }

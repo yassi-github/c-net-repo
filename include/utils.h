@@ -14,10 +14,10 @@
 // example:
 //   noreturn void foo() { exit 0; }
 #define no_return [[noreturn]]
-#else // __cplusplus
+#else                     // __cplusplus
 #include <stdnoreturn.h>  // noreturn
 #define no_return noreturn
-#endif // __cplusplus
+#endif  // __cplusplus
 
 // = 1 mili sec in nano unit
 #define MSEC 1000000
@@ -31,7 +31,7 @@ void trim(char *string);
 // #include "errorutil.h" // circular reference
 typedef const char *error;
 
-#include <stddef.h> // size_t
+#include <stddef.h>  // size_t
 // split string.
 //
 // example:
