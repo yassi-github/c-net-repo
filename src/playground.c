@@ -4,6 +4,12 @@
 // 送り側のタイミングに合わせて受け側がメッセージを受け取っていることを
 // 示す例となっている．
 
+// (_XOPEN_SOURCE >= 500) && ! (_POSIX_C_SOURCE >= 200809L)
+#ifdef _POSIX_C_SOURCE
+#undef _POSIX_C_SOURCE
+#define _XOPEN_SOURCE 500
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
