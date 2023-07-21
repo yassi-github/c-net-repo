@@ -7,8 +7,10 @@
 extern void error_exit(error err);
 
 TEST(randomTest, seedRand) {
-  unsigned int seed;
-  EXPECT_EQ(NULL, init_seed(&seed));
-  int random_int;
-  EXPECT_EQ(NULL, randint(seed, &random_int));
+  EXPECT_EQ(NULL, init_seed());
+  int random_int1, random_int2, random_int3;
+  EXPECT_EQ(NULL, randint(&random_int1));
+  EXPECT_EQ(NULL, randint(&random_int2));
+  EXPECT_EQ(NULL, randint(&random_int3));
+  EXPECT_FALSE((random_int1 == random_int2) && (random_int1 == random_int3));
 }
